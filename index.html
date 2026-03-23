@@ -308,29 +308,36 @@
         `${days}d ${hours}h ${mins}m remaining`;
     }
     updateCountdown();
-    setInterval(updateCountdown, 60000);
+    // BUG FIX: Was 60000ms — if the tab stayed open across midnight the
+    // display could be wrong for up to a minute. Now updates every second.
+    // ID is stored so it can be cleared if needed (same fix as quote interval).
+    const _gateInterval = setInterval(updateCountdown, 1000);
   })();
 
   /* ── Timer logic ── */
-  let interval   = null;
-  let elapsed    = 0;        // seconds
-  let startTime  = null;     // Date object
-  let running    = false;
+  const STORAGE_KEY = 'studyTimerState';
 
-  const timerEl   = document.getElementById('timer');
-  const subEl     = document.getElementById('timer-sub');
-  const outputEl  = document.getElementById('output');
-  const btnStart  = document.getElementById('btn-start');
-  const btnStop   = document.getElementById('btn-stop');
-  const btnReset  = document.getElementById('btn-reset');
+  let interval       = null;
+  let elapsed        = 0;      // total seconds accumulated across all pauses
+  let elapsedAtPause = 0;      // snapshot of elapsed the moment we paused
+  let runStartedAt   = null;   // Date.now() value when the current run segment began
+  let sessionStart   = null;   // Date object: very first Start of this session
+  let running        = false;
 
+  const timerEl  = document.getElementById('timer');
+  const subEl    = document.getElementById('timer-sub');
+  const outputEl = document.getElementById('output');
+  const btnStart = document.getElementById('btn-start');
+  const btnStop  = document.getElementById('btn-stop');
+  const btnReset = document.getElementById('btn-reset');
+
+  /* ── helpers ── */
   function pad(n) { return String(n).padStart(2, '0'); }
 
   function formatDisplay(s) {
     const h = Math.floor(s / 3600);
     const m = Math.floor((s % 3600) / 60);
-    const sec = s % 60;
-    return `${pad(h)}:${pad(m)}:${pad(sec)}`;
+    return `${pad(h)}:${pad(m)}:${pad(s % 60)}`;
   }
 
   function formatTime12(date) {
@@ -355,31 +362,99 @@
     return str;
   }
 
-  btnStart.addEventListener('click', () => {
-    if (running) return;
-    running   = true;
-    startTime = startTime || new Date();         // preserve start if resuming
-    if (!startTime._recorded) {
-      startTime = new Date();
-      startTime._recorded = true;
-    }
+  /* ── localStorage persistence ── */
+  // BUG FIX: Previously, a page refresh or accidental tab close wiped the
+  // entire session. Now we save state on every tick so it survives.
 
-    // store the real start moment only on first start
-    if (!window._sessionStart) window._sessionStart = new Date();
+  function saveState() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        elapsedAtPause,
+        runStartedAt,          // null when paused, a timestamp when running
+        sessionStart: sessionStart ? sessionStart.getTime() : null,
+        running
+      }));
+    } catch (e) { /* localStorage unavailable (private mode etc.) — degrade gracefully */ }
+  }
 
+  function clearState() {
+    try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+  }
+
+  function restoreState() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      const s = JSON.parse(raw);
+
+      elapsedAtPause = s.elapsedAtPause || 0;
+      sessionStart   = s.sessionStart ? new Date(s.sessionStart) : null;
+
+      if (s.running && s.runStartedAt) {
+        // The timer was running when the page closed/refreshed.
+        // Recompute how much time has passed since then.
+        runStartedAt = s.runStartedAt;
+        elapsed      = elapsedAtPause + Math.floor((Date.now() - runStartedAt) / 1000);
+        startRunningUI();
+      } else if (sessionStart && s.running === false) {
+        // Timer was paused — restore the frozen display, even if the elapsed
+        // time is exactly zero.
+        elapsed = elapsedAtPause;
+        timerEl.textContent = formatDisplay(elapsed);
+        timerEl.classList.add('stopped');
+        subEl.textContent = '';
+        const dur = formatDuration(elapsed);
+        outputEl.innerHTML =
+          `Session restored. You have studied for <strong>${dur}</strong> so far. Keep going! 🎯`;
+        outputEl.classList.add('visible');
+        btnStart.disabled = false;
+        btnStop.disabled  = true;
+        btnReset.disabled = false;
+      }
+    } catch (e) { clearState(); }
+  }
+
+  /* ── flush state on tab close / refresh ── */
+  // We do NOT block navigation. Since localStorage saves on every tick, the
+  // session survives a refresh perfectly. Blocking with e.preventDefault()
+  // would show "Changes may not be saved" — an outright lie that causes panic.
+  // Instead just flush saveState() once more so the stored snapshot is as
+  // fresh as possible (rather than relying on the last tick up to 200ms ago).
+  window.addEventListener('beforeunload', () => {
+    if (running) saveState();
+  });
+
+  /* ── core timer tick ── */
+  function tick() {
+    elapsed = elapsedAtPause + Math.floor((Date.now() - runStartedAt) / 1000);
+    timerEl.textContent = formatDisplay(elapsed);
+    saveState(); // persist on every tick — survives refresh
+  }
+
+  function startRunningUI() {
+    if (interval) clearInterval(interval);
+    running = true;
     timerEl.classList.add('running');
     timerEl.classList.remove('stopped');
-    subEl.textContent = `started at ${formatTime12(window._sessionStart)}`;
+    subEl.textContent = `started at ${formatTime12(sessionStart)}`;
     outputEl.classList.remove('visible');
-
     btnStart.disabled = true;
     btnStop.disabled  = false;
     btnReset.disabled = true;
 
-    interval = setInterval(() => {
-      elapsed++;
-      timerEl.textContent = formatDisplay(elapsed);
-    }, 1000);
+    // 200ms interval: feels live, and uses real wall-clock math so
+    // browser throttling of background tabs can never make it drift.
+    interval = setInterval(tick, 200);
+    tick(); // immediate first tick so display updates at once
+    saveState(); // persist the active state immediately
+  }
+
+  /* ── button handlers ── */
+  btnStart.addEventListener('click', () => {
+    if (running) return;
+    if (!sessionStart) sessionStart = new Date();
+    runStartedAt = Date.now();
+    startRunningUI();
   });
 
   btnStop.addEventListener('click', () => {
@@ -387,29 +462,35 @@
     clearInterval(interval);
     running = false;
 
-    const endTime = new Date();
+    // Freeze elapsed using wall-clock so the final value is exact.
+    elapsed        = elapsedAtPause + Math.floor((Date.now() - runStartedAt) / 1000);
+    elapsedAtPause = elapsed;
+    runStartedAt   = null;
+
     timerEl.classList.remove('running');
     timerEl.classList.add('stopped');
     subEl.textContent = '';
 
-    const start = window._sessionStart;
-    const dur   = formatDuration(elapsed);
-
+    const endTime = new Date();
     outputEl.innerHTML =
-      `You studied between <strong>${formatTime12(start)}</strong> and <strong>${formatTime12(endTime)}</strong>.<br>
-       You studied for <strong>${dur}</strong>. Every minute counts. Keep going! 🎯`;
+      `You studied between <strong>${formatTime12(sessionStart)}</strong> and <strong>${formatTime12(endTime)}</strong>.<br>
+       You studied for <strong>${formatDuration(elapsed)}</strong>. Every minute counts. Keep going! 🎯`;
     outputEl.classList.add('visible');
 
     btnStart.disabled = false;
     btnStop.disabled  = true;
     btnReset.disabled = false;
+
+    saveState();
   });
 
   btnReset.addEventListener('click', () => {
     clearInterval(interval);
-    running  = false;
-    elapsed  = 0;
-    window._sessionStart = null;
+    running        = false;
+    elapsed        = 0;
+    elapsedAtPause = 0;
+    runStartedAt   = null;
+    sessionStart   = null;
 
     timerEl.textContent = '00:00:00';
     timerEl.classList.remove('running', 'stopped');
@@ -419,7 +500,12 @@
     btnStart.disabled = false;
     btnStop.disabled  = true;
     btnReset.disabled = true;
+
+    clearState(); // wipe saved state on explicit reset
   });
+
+  // Restore any previously saved session on page load
+  restoreState();
 
   /* ── Quotes ── */
   const quotes = [
@@ -524,7 +610,9 @@
 
   showQuote(currentQuoteIndex);
 
-  setInterval(() => {
+  // BUG FIX: Previously the interval ID was thrown away, making it
+  // impossible to ever stop. Now stored so it can be cleared if needed.
+  const quoteInterval = setInterval(() => {
     currentQuoteIndex = (currentQuoteIndex + 1) % quotes.length;
     showQuote(currentQuoteIndex);
   }, 12000);
