@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Study Timer — GATE CS & DA</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #09090e;
+      --surface:   #111119;
+      --border:    #1e1e2e;
+      --gold:      #c9a84c;
+      --gold-dim:  #8a6f30;
+      --text:      #dcd9d0;
+      --muted:     #55556a;
+      --white:     #f0ede6;
+      --red:       #b85450;
+      --green:     #5a8a6a;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 300;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 0 24px 60px;
+      position: relative;
+    }
+
+    /* ── subtle background grain ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── GATE countdown bar ── */
+    #countdown-bar {
+      width: 100%;
+      max-width: 680px;
+      margin-top: 36px;
+      padding: 14px 24px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--surface);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      position: relative;
+      z-index: 1;
+    }
+
+    #countdown-bar .label {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    #countdown-bar .days {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      color: var(--gold);
+      letter-spacing: 0.05em;
+    }
+
+    #countdown-bar .dot {
+      width: 3px; height: 3px;
+      border-radius: 50%;
+      background: var(--border);
+    }
+
+    /* ── main card ── */
+    #card {
+      width: 100%;
+      max-width: 680px;
+      margin-top: 20px;
+      padding: 60px 48px 52px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--surface);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+      position: relative;
+      z-index: 1;
+    }
+
+    .page-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-weight: 300;
+      font-size: 15px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 48px;
+    }
+
+    /* ── timer display ── */
+    #timer {
+      font-family: 'Cormorant Garamond', serif;
+      font-weight: 300;
+      font-size: clamp(80px, 18vw, 130px);
+      letter-spacing: -0.01em;
+      color: var(--white);
+      line-height: 1;
+      transition: color 0.4s ease;
+      user-select: none;
+    }
+
+    #timer.running { color: var(--white); }
+    #timer.stopped { color: var(--gold); }
+
+    .timer-sub {
+      margin-top: 10px;
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+      height: 16px;
+      transition: opacity 0.3s;
+    }
+
+    /* ── divider ── */
+    .divider {
+      width: 40px;
+      height: 1px;
+      background: var(--border);
+      margin: 44px 0 40px;
+    }
+
+    /* ── buttons ── */
+    #controls {
+      display: flex;
+      gap: 14px;
+      align-items: center;
+    }
+
+    button {
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 400;
+      font-size: 12px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      padding: 14px 32px;
+      background: transparent;
+      color: var(--muted);
+    }
+
+    button:hover { border-color: var(--muted); color: var(--text); }
+
+    #btn-start {
+      border-color: var(--gold-dim);
+      color: var(--gold);
+      padding: 16px 48px;
+      font-size: 13px;
+    }
+    #btn-start:hover { background: var(--gold); color: var(--bg); border-color: var(--gold); }
+
+    #btn-stop  { color: var(--red); border-color: #4a2828; }
+    #btn-stop:hover  { background: var(--red); color: var(--white); border-color: var(--red); }
+
+    #btn-reset { color: var(--muted); }
+    #btn-reset:hover { border-color: var(--muted); }
+
+    button:disabled {
+      opacity: 0.25;
+      pointer-events: none;
+    }
+
+    /* ── output message ── */
+    #output {
+      margin-top: 36px;
+      width: 100%;
+      padding: 20px 24px;
+      border: 1px solid var(--green);
+      border-radius: 4px;
+      background: rgba(90, 138, 106, 0.07);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      line-height: 1.7;
+      color: #8abf9a;
+      display: none;
+      text-align: center;
+      letter-spacing: 0.01em;
+    }
+
+    #output.visible { display: block; animation: fadeIn 0.5s ease; }
+
+    #output strong {
+      color: #aad4b4;
+      font-weight: 500;
+    }
+
+    /* ── quotes ── */
+    #quotes {
+      width: 100%;
+      max-width: 680px;
+      margin-top: 20px;
+      padding: 28px 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--surface);
+      text-align: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    #quote-text {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 19px;
+      font-weight: 300;
+      color: var(--text);
+      line-height: 1.6;
+      font-style: italic;
+      transition: opacity 0.5s;
+    }
+
+    #quote-author {
+      margin-top: 10px;
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--muted);
+      transition: opacity 0.5s;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .fade-out { opacity: 0 !important; }
+  </style>
+</head>
+<body>
+
+  <!-- GATE Countdown -->
+  <div id="countdown-bar">
+    <span class="label">GATE 2027 CS &amp; DA</span>
+    <span class="dot"></span>
+    <span class="days" id="gate-days">— days remaining</span>
+    <span class="dot"></span>
+    <span class="label">Stay the course</span>
+  </div>
+
+  <!-- Main Card -->
+  <div id="card">
+    <p class="page-title">Study Timer</p>
+
+    <div id="timer">00:00:00</div>
+    <div class="timer-sub" id="timer-sub"></div>
+
+    <div class="divider"></div>
+
+    <div id="controls">
+      <button id="btn-stop"  disabled>Stop</button>
+      <button id="btn-start">Start</button>
+      <button id="btn-reset" disabled>Reset</button>
+    </div>
+
+    <div id="output"></div>
+  </div>
+
+  <!-- Quote -->
+  <div id="quotes">
+    <div id="quote-text"></div>
+    <div id="quote-author"></div>
+  </div>
+
+<script>
+  /* ── GATE countdown ── */
+  (function() {
+    // GATE 2027 — approximate date (first Saturday of February 2027)
+    const gateDate = new Date('2027-02-06T09:00:00+05:30');
+    function updateCountdown() {
+      const now = new Date();
+      const diff = gateDate - now;
+      if (diff <= 0) {
+        document.getElementById('gate-days').textContent = 'GATE day is here!';
+        return;
+      }
+      const days  = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const mins  = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      document.getElementById('gate-days').textContent =
+        `${days}d ${hours}h ${mins}m remaining`;
+    }
+    updateCountdown();
+    setInterval(updateCountdown, 60000);
+  })();
+
+  /* ── Timer logic ── */
+  let interval   = null;
+  let elapsed    = 0;        // seconds
+  let startTime  = null;     // Date object
+  let running    = false;
+
+  const timerEl   = document.getElementById('timer');
+  const subEl     = document.getElementById('timer-sub');
+  const outputEl  = document.getElementById('output');
+  const btnStart  = document.getElementById('btn-start');
+  const btnStop   = document.getElementById('btn-stop');
+  const btnReset  = document.getElementById('btn-reset');
+
+  function pad(n) { return String(n).padStart(2, '0'); }
+
+  function formatDisplay(s) {
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const sec = s % 60;
+    return `${pad(h)}:${pad(m)}:${pad(sec)}`;
+  }
+
+  function formatTime12(date) {
+    let h = date.getHours(), m = date.getMinutes();
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+    return `${h}:${pad(m)} ${ampm}`;
+  }
+
+  function formatDuration(s) {
+    if (s < 60)   return `${s} second${s !== 1 ? 's' : ''}`;
+    if (s < 3600) {
+      const m = Math.floor(s / 60), sec = s % 60;
+      return sec ? `${m} min ${sec} sec` : `${m} minute${m !== 1 ? 's' : ''}`;
+    }
+    const h   = Math.floor(s / 3600);
+    const m   = Math.floor((s % 3600) / 60);
+    const sec = s % 60;
+    let str = `${h} hour${h !== 1 ? 's' : ''}`;
+    if (m)   str += ` ${m} min`;
+    if (sec) str += ` ${sec} sec`;
+    return str;
+  }
+
+  btnStart.addEventListener('click', () => {
+    if (running) return;
+    running   = true;
+    startTime = startTime || new Date();         // preserve start if resuming
+    if (!startTime._recorded) {
+      startTime = new Date();
+      startTime._recorded = true;
+    }
+
+    // store the real start moment only on first start
+    if (!window._sessionStart) window._sessionStart = new Date();
+
+    timerEl.classList.add('running');
+    timerEl.classList.remove('stopped');
+    subEl.textContent = `started at ${formatTime12(window._sessionStart)}`;
+    outputEl.classList.remove('visible');
+
+    btnStart.disabled = true;
+    btnStop.disabled  = false;
+    btnReset.disabled = true;
+
+    interval = setInterval(() => {
+      elapsed++;
+      timerEl.textContent = formatDisplay(elapsed);
+    }, 1000);
+  });
+
+  btnStop.addEventListener('click', () => {
+    if (!running) return;
+    clearInterval(interval);
+    running = false;
+
+    const endTime = new Date();
+    timerEl.classList.remove('running');
+    timerEl.classList.add('stopped');
+    subEl.textContent = '';
+
+    const start = window._sessionStart;
+    const dur   = formatDuration(elapsed);
+
+    outputEl.innerHTML =
+      `You studied between <strong>${formatTime12(start)}</strong> and <strong>${formatTime12(endTime)}</strong>.<br>
+       You studied for <strong>${dur}</strong>. Every minute counts. Keep going! 🎯`;
+    outputEl.classList.add('visible');
+
+    btnStart.disabled = false;
+    btnStop.disabled  = true;
+    btnReset.disabled = false;
+  });
+
+  btnReset.addEventListener('click', () => {
+    clearInterval(interval);
+    running  = false;
+    elapsed  = 0;
+    window._sessionStart = null;
+
+    timerEl.textContent = '00:00:00';
+    timerEl.classList.remove('running', 'stopped');
+    subEl.textContent = '';
+    outputEl.classList.remove('visible');
+
+    btnStart.disabled = false;
+    btnStop.disabled  = true;
+    btnReset.disabled = true;
+  });
+
+  /* ── Quotes ── */
+  const quotes = [
+    { text: "Sukh ho ya dukh, ek hi vichaar — Ladli Ju ki kripa hai.", author: "Gurudev" },
+    { text: "Shan shan mein kripa hi kripa hai.", author: "Gurudev" },
+    { text: "Yugal Sarkar ki bahut kripa hai — bas yahi yaad rakho.", author: "Gurudev" },
+    { text: "Bhajan Shri Ji ke liye, Shri Ji ke dwara hi hoga.", author: "Gurudev" },
+    { text: "Sadhan bhi priyalal, sadhya bhi priyalal.", author: "Gurudev" },
+    { text: "Sharanagati matlab — saari bhar unki, teri koi nahi.", author: "Gurudev" },
+    { text: "Nirantar naam japa — Radha Radha... yahi tera kaam hai.", author: "Gurudev" },
+    { text: "Chinta karna matlab Radha Rani par vishwas nahi karna.", author: "Gurudev" },
+    { text: "Tera man, tera sharir — sab kuch unka ho gaya hai.", author: "Gurudev" },
+    { text: "Ab tu unka ho gaya hai, toh saari bhar unki hai.", author: "Gurudev" },
+    { text: "Vikaar aaye toh rona mat — sirf bolna, Naath app dekhlo.", author: "Gurudev" },
+    { text: "Vishwas kar, chinta mat kar — bas itna kaafi hai.", author: "Gurudev" },
+    { text: "Ro do bhai, par bolna — Naath app dekhlo, nischint raho.", author: "Gurudev" },
+    { text: "Dosho ki chinta nahi — unke saamne aao, woh dekh lenge.", author: "Gurudev" },
+    { text: "Gurudev ne sharanagati di hai — ab teri zimmedaari unki hai.", author: "Gurudev" },
+    { text: "Tera bhaar mujhe de de — tu khali ho ja.", author: "Radha Rani" },
+    { text: "Mera naam le — bas itna hi tera kaam hai.", author: "Radha Rani" },
+    { text: "Tu kuch nahi kar sakta, main sab kar sakti hoon.", author: "Radha Rani" },
+    { text: "Tera jeevan mera hai — main hi chalaaungi.", author: "Radha Rani" },
+    { text: "Teri samarthya nahi hai, meri hai — is fark ko samajh le.", author: "Radha Rani" },
+    { text: "Tu mera hai — toh teri chinta bhi meri hai.", author: "Radha Rani" },
+    { text: "Tujhe meri yaad chahiye, mujhe teri — yahi rishta hai.", author: "Radha Rani" },
+    { text: "Har pal meri kripa hai — tu dekh nahi raha, main hoon yahan.", author: "Radha Rani" },
+    { text: "Bhajan bhi main karaaungi, tu bas aane de mujhe.", author: "Radha Rani" },
+    { text: "Tere dosh tere nahi — la, mujhe de de.", author: "Radha Rani" },
+    { text: "Tu ghabra mat — jo nahi kar sakta, woh main karti hoon.", author: "Radha Rani" },
+    { text: "Ek second bhi meri kripa ke bina nahi guzra tere liye.", author: "Radha Rani" },
+    { text: "Teri mehnat bhi meri, tera result bhi mera.", author: "Radha Rani" },
+    { text: "Naam le mera — baki main sambhal lungi.", author: "Radha Rani" },
+    { text: "Tu shunya hai, main poorna hoon — mil ja mujhse.", author: "Radha Rani" },
+    { text: "Tera dil dukhta hai? La, mujhe dikha — main dekhti hoon.", author: "Radha Rani" },
+    { text: "Tujhe toppers list mein main le jaaungi — tu vishwas rakh.", author: "Radha Rani" },
+    { text: "Teri neend, teri padhai, tera waqt — sab mera hai.", author: "Radha Rani" },
+    { text: "Jo teri samajh se bahar hai, woh meri pakad mein hai.", author: "Radha Rani" },
+    { text: "Tu roz aaja mere paas — main roz nayi shakti dungi.", author: "Radha Rani" },
+    { text: "Teri koshish meri hai — main ise vyarth nahi jaane dungi.", author: "Radha Rani" },
+    { text: "Har quiz, har session — main hoon tere saath.", author: "Radha Rani" },
+    { text: "Tujhe sirf yaad rakhna hai mujhe — baki sab mera kaam hai.", author: "Radha Rani" },
+    { text: "Dard mein bhi meri kripa hai — aankhein khol ke dekh.", author: "Radha Rani" },
+    { text: "Tu akela nahi hai — main hoon, hamesha hoon.", author: "Radha Rani" },
+    { text: "Teri kamzori meri taaqat mein sama jaati hai.", author: "Radha Rani" },
+    { text: "Agar tu shunya bane, main poora bhar dungi.", author: "Radha Rani" },
+    { text: "Naam jap mera — yahi tera sabse bada kaam hai.", author: "Radha Rani" },
+    { text: "Tu strategy mat bana — main raah dikhaaungi.", author: "Radha Rani" },
+    { text: "Mujhme samarthya nahi — Shri Ji hi kuch kar sakti hain.", author: "Shriyash" },
+    { text: "Ye jeevan mera nahi — Radha Rani ka hai.", author: "Shriyash" },
+    { text: "Ek second aur guzra — abhi bhi unki hi kripa thi.", author: "Shriyash" },
+    { text: "Mujhe bas unki yaad chahiye, aur kuch nahi.", author: "Shriyash" },
+    { text: "Mein apne se kuch nahi kar sakta — ye sach hai.", author: "Shriyash" },
+    { text: "Apki kripa se jeevan chalega — meri taaqat se nahi.", author: "Shriyash" },
+    { text: "App hi mere sab kuch hain — is baat ko bhoolna nahi.", author: "Shriyash" },
+    { text: "Jo main nahi kar sakta, Shri Ji kar sakti hain.", author: "Shriyash" },
+    { text: "Mera dosh hai — par unhe de diya, ab chinta nahi.", author: "Shriyash" },
+    { text: "Sir ka sapna poora karna mere bas mein nahi — Shri Ji ke bas mein hai.", author: "Shriyash" },
+    { text: "Mein zero hoon — Shri Ji number one hain.", author: "Shriyash" },
+    { text: "Har dukh mein ek hi baat — Ladli Ju ki badi kripa hai.", author: "Shriyash" },
+    { text: "Chinta karna matlab unpar shak karna — nahi karna.", author: "Shriyash" },
+    { text: "Vikaar aaya — seedha unke paas chala jaata hoon.", author: "Shriyash" },
+    { text: "Naath app dekhlo — itna bolna kaafi hai, rona bhi theek hai.", author: "Shriyash" },
+    { text: "Shan shan mein kripa hai — mujhe sirf dekhna hai.", author: "Shriyash" },
+    { text: "Unki sharanagati mein hoon — toh bhar unhi ki hai.", author: "Shriyash" },
+    { text: "Padhai bhi unki, rank bhi unka — mein bas nimit hoon.", author: "Shriyash" },
+    { text: "Unpar bharosa hai — toh mehnat mein darna kaisa.", author: "Shriyash" },
+    { text: "Sadhan bhi unka, sadhya bhi unka — main beech mein kaun?", author: "Shriyash" },
+    { text: "Ek naam — Radha — itna hi kaafi hai mere liye.", author: "Shriyash" },
+    { text: "Jo main nahi sambhal sakta, woh unka kaam hai.", author: "Shriyash" },
+    { text: "Mein weak hoon — isliye Shri Ji mere liye perfect hain.", author: "Shriyash" },
+    { text: "Roz unka naam lena — yahi meri sabse badi koshish hai.", author: "Shriyash" },
+    { text: "Agar main toppers list mein hoon — toh woh Shri Ji hain, main nahi.", author: "Shriyash" },
+    { text: "Unki nirmal yash — iska dhyaan rakhna meri pehli duty hai.", author: "Shriyash" },
+    { text: "Jo nahi hota mujhse — woh Shri Ji se hota hai.", author: "Shriyash" },
+    { text: "Hard-work meri taaqat nahi — Shri Ji ki den hai.", author: "Shriyash" },
+    { text: "Gurudev ne raah dikhaai, Shri Ji raah hain — main sirf chalun.", author: "Shriyash" },
+    { text: "Mein kuch bhi nahi — Shri Ji sab kuch hain.", author: "Shriyash" },
+    { text: "Unpe chhodna weakness nahi — sabse badi samajhdaari hai.", author: "Shriyash" },
+    { text: "Mera best bhi unki kripa hai — apna nahi keh sakta.", author: "Shriyash" },
+    { text: "Unka naam lena — yahi meri consistency hai.", author: "Shriyash" },
+    { text: "Agar main kuch bhi achieve karun — Shri Ji ne kiya, main nahi.", author: "Shriyash" },
+    { text: "Ghabrana nahi — Shri Ji hain na.", author: "Shriyash" },
+    { text: "Unke bina ek pal bhi theek se nahi guzarta.", author: "Shriyash" },
+    { text: "Unka naam meri sabse badi tayyaari hai.", author: "Shriyash" },
+    { text: "Apni kamzori dekhta hoon toh — unki zaroorat aur zyada lagti hai.", author: "Shriyash" },
+  ];
+
+  let currentQuoteIndex = Math.floor(Math.random() * quotes.length);
+
+  function showQuote(index) {
+    const qText   = document.getElementById('quote-text');
+    const qAuthor = document.getElementById('quote-author');
+    qText.classList.add('fade-out');
+    qAuthor.classList.add('fade-out');
+    setTimeout(() => {
+      qText.textContent   = `"${quotes[index].text}"`;
+      qAuthor.textContent = `— ${quotes[index].author}`;
+      qText.classList.remove('fade-out');
+      qAuthor.classList.remove('fade-out');
+    }, 500);
+  }
+
+  showQuote(currentQuoteIndex);
+
+  setInterval(() => {
+    currentQuoteIndex = (currentQuoteIndex + 1) % quotes.length;
+    showQuote(currentQuoteIndex);
+  }, 12000);
+</script>
+</body>
+</html>
