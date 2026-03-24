@@ -252,6 +252,112 @@
     }
 
     .fade-out { opacity: 0 !important; }
+
+    /* ── stats panel ── */
+    #stats {
+      width: 100%;
+      max-width: 680px;
+      margin-top: 20px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--surface);
+      position: relative;
+      z-index: 1;
+      overflow: hidden;
+    }
+
+    #stats-header {
+      padding: 18px 32px 14px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    #stats-header .s-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 13px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 300;
+    }
+
+    #today-badge {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 2px;
+      transition: all 0.4s ease;
+    }
+
+    #today-badge.rank-ranker  { background: rgba(201,168,76,0.15); color: var(--gold); border: 1px solid var(--gold-dim); }
+    #today-badge.rank-vgood   { background: rgba(90,138,106,0.15); color: #8abf9a;     border: 1px solid #3a6a4a; }
+    #today-badge.rank-good    { background: rgba(90,138,106,0.10); color: #6a9f7a;     border: 1px solid #2a5a3a; }
+    #today-badge.rank-paapi   { background: rgba(184,84,80,0.15);  color: var(--red);  border: 1px solid #6a2828; }
+    #today-badge.rank-none    { background: transparent; color: var(--muted);          border: 1px solid var(--border); }
+
+    #stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .stat-cell {
+      padding: 20px 24px;
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .stat-cell:last-child { border-right: none; }
+
+    .stat-label {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .stat-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 16px;
+      color: var(--white);
+      letter-spacing: 0.02em;
+      line-height: 1;
+    }
+
+    .stat-value.dim { color: var(--muted); font-size: 13px; }
+
+    #stats-today-row {
+      padding: 14px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    #today-detail {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 0.01em;
+    }
+
+    #today-detail strong {
+      color: var(--text);
+      font-weight: 400;
+    }
+
+    @media (max-width: 540px) {
+      #stats-grid { grid-template-columns: 1fr 1fr; }
+      .stat-cell:nth-child(2) { border-right: none; }
+      .stat-cell:nth-child(3) { border-top: 1px solid var(--border); }
+    }
   </style>
 </head>
 <body>
@@ -283,6 +389,36 @@
     <div id="output"></div>
   </div>
 
+
+  <!-- Stats Panel -->
+  <div id="stats">
+    <div id="stats-header">
+      <span class="s-title">Study Log</span>
+      <span id="today-badge" class="rank-none">—</span>
+    </div>
+    <div id="stats-grid">
+      <div class="stat-cell">
+        <span class="stat-label">Today</span>
+        <span class="stat-value dim" id="stat-today">0h 0m</span>
+      </div>
+      <div class="stat-cell">
+        <span class="stat-label">This Week</span>
+        <span class="stat-value dim" id="stat-week">0h 0m</span>
+      </div>
+      <div class="stat-cell">
+        <span class="stat-label">This Month</span>
+        <span class="stat-value dim" id="stat-month">0h 0m</span>
+      </div>
+      <div class="stat-cell">
+        <span class="stat-label">Daily Avg</span>
+        <span class="stat-value dim" id="stat-avg">—</span>
+      </div>
+    </div>
+    <div id="stats-today-row">
+      <span id="today-detail">No sessions logged today yet.</span>
+    </div>
+  </div>
+
   <!-- Quote -->
   <div id="quotes">
     <div id="quote-text"></div>
@@ -292,26 +428,24 @@
 <script>
   /* ── GATE countdown ── */
   (function() {
-    // GATE 2027 — approximate date (first Saturday of February 2027)
     const gateDate = new Date('2027-02-06T09:00:00+05:30');
+    const el = document.getElementById('gate-days');
+    let gateInterval; // declared here so updateCountdown can reach it
+
     function updateCountdown() {
-      const now = new Date();
-      const diff = gateDate - now;
+      const diff = gateDate - Date.now();
       if (diff <= 0) {
-        document.getElementById('gate-days').textContent = 'GATE day is here!';
+        el.textContent = 'GATE day is here!';
+        clearInterval(gateInterval); // stop — no point firing forever after goal is reached
         return;
       }
       const days  = Math.floor(diff / (1000 * 60 * 60 * 24));
       const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
       const mins  = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-      document.getElementById('gate-days').textContent =
-        `${days}d ${hours}h ${mins}m remaining`;
+      el.textContent = `${days}d ${hours}h ${mins}m remaining`;
     }
     updateCountdown();
-    // BUG FIX: Was 60000ms — if the tab stayed open across midnight the
-    // display could be wrong for up to a minute. Now updates every second.
-    // ID is stored so it can be cleared if needed (same fix as quote interval).
-    const _gateInterval = setInterval(updateCountdown, 1000);
+    gateInterval = setInterval(updateCountdown, 1000); // assigned after declaration so updateCountdown can clear it
   })();
 
   /* ── Timer logic ── */
@@ -387,18 +521,44 @@
       if (!raw) return;
       const s = JSON.parse(raw);
 
-      elapsedAtPause = s.elapsedAtPause || 0;
+      // Validate — must be a non-negative finite number, else treat as 0
+      elapsedAtPause = (typeof s.elapsedAtPause === 'number' && isFinite(s.elapsedAtPause) && s.elapsedAtPause >= 0)
+        ? s.elapsedAtPause : 0;
       sessionStart   = s.sessionStart ? new Date(s.sessionStart) : null;
 
-      if (s.running && s.runStartedAt) {
-        // The timer was running when the page closed/refreshed.
-        // Recompute how much time has passed since then.
+      const MAX_UNATTENDED_MS = 4 * 60 * 60 * 1000; // 4 hours
+      const timeSinceLastSave  = Date.now() - (s.runStartedAt || 0);
+
+      if (s.running && s.runStartedAt && timeSinceLastSave < MAX_UNATTENDED_MS) {
+        // The timer was running when the page closed/refreshed and it was
+        // recent enough to trust — resume as if it never stopped.
         runStartedAt = s.runStartedAt;
-        elapsed      = elapsedAtPause + Math.floor((Date.now() - runStartedAt) / 1000);
         startRunningUI();
-      } else if (sessionStart && s.running === false) {
-        // Timer was paused — restore the frozen display, even if the elapsed
-        // time is exactly zero.
+      } else if (s.running && s.runStartedAt) {
+        // Timer was "running" in storage but runStartedAt is very old (e.g.
+        // browser was closed overnight). Treat as paused at last known elapsed.
+        // We DO log the elapsed time — the user genuinely studied those hours
+        // before the crash. Without this, the time shows on screen but is
+        // silently lost from all stats (Today / Week / Month).
+        elapsed = elapsedAtPause;
+        timerEl.textContent = formatDisplay(elapsed);
+        timerEl.classList.add('stopped');
+        subEl.textContent = '';
+        outputEl.innerHTML =
+          `Session restored (paused). You had studied for <strong>${formatDuration(elapsed)}</strong>. Resume when ready. 🎯`;
+        outputEl.classList.add('visible');
+        btnStart.disabled = false;
+        btnStop.disabled  = true;
+        btnReset.disabled = false;
+        // Fix up saved state so it reflects the paused reality
+        runStartedAt = null;
+        saveState();
+        // Log the pre-crash segment so stats are not robbed of real study time.
+        // elapsedAtPause here equals elapsed (no new segment yet), which is
+        // exactly the time the user studied before the browser died.
+        logSession(elapsed);
+      } else if (elapsedAtPause > 0 && sessionStart) {
+        // Timer was paused — restore the frozen display.
         elapsed = elapsedAtPause;
         timerEl.textContent = formatDisplay(elapsed);
         timerEl.classList.add('stopped');
@@ -425,14 +585,23 @@
   });
 
   /* ── core timer tick ── */
+  let _lastSavedElapsed = -1;
   function tick() {
-    elapsed = elapsedAtPause + Math.floor((Date.now() - runStartedAt) / 1000);
-    timerEl.textContent = formatDisplay(elapsed);
-    saveState(); // persist on every tick — survives refresh
+    // Math.max(0, ...) guards against a backward system clock adjustment
+    // that could produce a negative value and break the display ("00:00:-1").
+    const newElapsed = Math.max(0, elapsedAtPause + Math.floor((Date.now() - runStartedAt) / 1000));
+    timerEl.textContent = formatDisplay(newElapsed);
+    elapsed = newElapsed;
+    // Only write to localStorage when the second value actually changes.
+    // The interval fires every 200ms for visual smoothness, but elapsed only
+    // increments once per second — no point doing 5 identical writes per second.
+    if (elapsed !== _lastSavedElapsed) {
+      _lastSavedElapsed = elapsed;
+      saveState();
+    }
   }
 
   function startRunningUI() {
-    if (interval) clearInterval(interval);
     running = true;
     timerEl.classList.add('running');
     timerEl.classList.remove('stopped');
@@ -446,7 +615,6 @@
     // browser throttling of background tabs can never make it drift.
     interval = setInterval(tick, 200);
     tick(); // immediate first tick so display updates at once
-    saveState(); // persist the active state immediately
   }
 
   /* ── button handlers ── */
@@ -454,16 +622,22 @@
     if (running) return;
     if (!sessionStart) sessionStart = new Date();
     runStartedAt = Date.now();
+    // No saveState() here — startRunningUI() calls tick() immediately,
+    // which saves the correct state with running:true already set.
     startRunningUI();
   });
 
   btnStop.addEventListener('click', () => {
     if (!running) return;
     clearInterval(interval);
+    interval = null;
     running = false;
 
     // Freeze elapsed using wall-clock so the final value is exact.
-    elapsed        = elapsedAtPause + Math.floor((Date.now() - runStartedAt) / 1000);
+    // Math.max(0,...) guards against a backward system-clock jump at stop time.
+    const prevElapsedAtPause = elapsedAtPause;
+    elapsed        = Math.max(0, elapsedAtPause + Math.floor((Date.now() - runStartedAt) / 1000));
+    const segmentSecs = elapsed - prevElapsedAtPause; // ONLY the time since last Start
     elapsedAtPause = elapsed;
     runStartedAt   = null;
 
@@ -481,11 +655,13 @@
     btnStop.disabled  = true;
     btnReset.disabled = false;
 
+    logSession(segmentSecs); // record only this segment (not cumulative) in the log
     saveState();
   });
 
   btnReset.addEventListener('click', () => {
     clearInterval(interval);
+    interval       = null;
     running        = false;
     elapsed        = 0;
     elapsedAtPause = 0;
@@ -502,10 +678,134 @@
     btnReset.disabled = true;
 
     clearState(); // wipe saved state on explicit reset
+    _lastSavedElapsed = -1; // ensure first tick of next session always saves
   });
 
   // Restore any previously saved session on page load
   restoreState();
+
+
+  /* ══════════════════════════════════════════════
+     SESSION LOG  — persists across all sessions
+     Each entry: { date: 'YYYY-MM-DD', secs: number }
+  ══════════════════════════════════════════════ */
+  const LOG_KEY = 'studySessionLog';
+
+  function todayStr() {
+    const d = new Date();
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  }
+
+  function loadLog() {
+    try {
+      const raw = localStorage.getItem(LOG_KEY);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch(e) { return []; }
+  }
+
+  function saveLog(log) {
+    try { localStorage.setItem(LOG_KEY, JSON.stringify(log)); } catch(e) {}
+  }
+
+  function logSession(secs) {
+    if (secs < 5) return; // ignore accidental sub-5-second stops
+    const log = loadLog();
+    log.push({ date: todayStr(), secs });
+    saveLog(log);
+    updateStats();
+  }
+
+  /* ── stats computation ── */
+  function getMondayStr(d) {
+    const day = d.getDay(); // 0=Sun
+    const diff = (day === 0 ? -6 : 1 - day);
+    const mon = new Date(d);
+    mon.setDate(d.getDate() + diff);
+    return `${mon.getFullYear()}-${pad(mon.getMonth()+1)}-${pad(mon.getDate())}`;
+  }
+
+  function computeStats(log) {
+    const today = todayStr();
+    const now   = new Date();
+    const monthPfx = `${now.getFullYear()}-${pad(now.getMonth()+1)}`;
+    const weekMon  = getMondayStr(now);
+
+    let todaySecs = 0, weekSecs = 0, monthSecs = 0;
+    const dayTotals = {}; // date → secs, for average
+
+    for (const entry of log) {
+      if (!entry || typeof entry.secs !== 'number') continue;
+      const s = entry.secs;
+      if (entry.date === today)             todaySecs  += s;
+      if (entry.date >= weekMon)            weekSecs   += s;
+      if (entry.date.startsWith(monthPfx)) monthSecs  += s;
+      dayTotals[entry.date] = (dayTotals[entry.date] || 0) + s;
+    }
+
+    const daysWithStudy = Object.keys(dayTotals).length;
+    const allSecs = Object.values(dayTotals).reduce((a, b) => a + b, 0);
+    const avgSecs = daysWithStudy > 0 ? Math.round(allSecs / daysWithStudy) : 0;
+
+    return { todaySecs, weekSecs, monthSecs, avgSecs, daysWithStudy };
+  }
+
+  function formatHM(secs) {
+    if (secs === 0) return '0h 0m';
+    const h = Math.floor(secs / 3600);
+    const m = Math.floor((secs % 3600) / 60);
+    if (h === 0) return `${m}m`;
+    return m > 0 ? `${h}h ${m}m` : `${h}h`;
+  }
+
+  function getRating(todaySecs) {
+    const h = todaySecs / 3600;
+    if (h >= 13) return { cls: 'rank-ranker', label: 'Ranker 🏆' };
+    if (h >= 10) return { cls: 'rank-vgood',  label: 'Very Good ⭐' };
+    if (h >= 8)  return { cls: 'rank-good',   label: 'Good ✅' };
+    if (h > 0)   return { cls: 'rank-paapi',  label: 'Adharmi. Paapi. Ahankari. Dusht. Narak-gaami. 🔥' };
+    return       { cls: 'rank-none',  label: '—' };
+  }
+
+  function updateStats() {
+    const log  = loadLog();
+    const s    = computeStats(log);
+    const rate = getRating(s.todaySecs);
+
+    document.getElementById('stat-today').textContent = formatHM(s.todaySecs);
+    document.getElementById('stat-week').textContent  = formatHM(s.weekSecs);
+    document.getElementById('stat-month').textContent = formatHM(s.monthSecs);
+    document.getElementById('stat-avg').textContent   = s.daysWithStudy > 0 ? formatHM(s.avgSecs) : '—';
+
+    // colour stat values — remove dim when non-zero
+    ['stat-today','stat-week','stat-month'].forEach(id => {
+      const el = document.getElementById(id);
+      el.classList.toggle('dim', el.textContent === '0h 0m');
+    });
+    // stat-avg is dim when '—', bright when it has a real value
+    const avgEl = document.getElementById('stat-avg');
+    avgEl.classList.toggle('dim', avgEl.textContent === '—');
+
+    const badge = document.getElementById('today-badge');
+    badge.className = rate.cls; // rate.cls is the only class needed; #today-badge is already the ID
+    badge.textContent = rate.label;
+
+    // bottom detail row
+    const detail = document.getElementById('today-detail');
+    if (s.todaySecs === 0) {
+      detail.innerHTML = 'No sessions logged today yet.';
+    } else {
+      const sessionsToday = log.filter(e => e.date === todayStr()).length;
+      detail.innerHTML =
+        `<strong>${sessionsToday}</strong> session${sessionsToday !== 1 ? 's' : ''} today &nbsp;·&nbsp; ` +
+        `<strong>${formatHM(s.todaySecs)}</strong> total &nbsp;·&nbsp; ` +
+        `<strong>${s.daysWithStudy}</strong> day${s.daysWithStudy !== 1 ? 's' : ''} studied all-time`;
+    }
+  }
+
+  // Run once on page load to populate stats from stored history
+  updateStats();
 
   /* ── Quotes ── */
   const quotes = [
