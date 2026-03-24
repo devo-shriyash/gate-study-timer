@@ -449,7 +449,7 @@
   })();
 
   /* ── Timer logic ── */
-  const STORAGE_KEY = 'studyTimerState';
+  const STORAGE_KEY = 'gate-timer:timerState';
 
   let interval       = null;
   let elapsed        = 0;      // total seconds accumulated across all pauses
@@ -689,7 +689,7 @@
      SESSION LOG  — persists across all sessions
      Each entry: { date: 'YYYY-MM-DD', secs: number }
   ══════════════════════════════════════════════ */
-  const LOG_KEY = 'studySessionLog';
+  const LOG_KEY = 'gate-timer:sessionLog';
 
   function todayStr() {
     const d = new Date();
