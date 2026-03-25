@@ -4,871 +4,481 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GATE 2027 Study Tracker</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
     <style>
-        :root {
-            --bg: #0a0a0f;
-            --bg-elevated: #12121a;
-            --card: #16161f;
-            --border: #2a2a3a;
-            --fg: #e8e8ed;
-            --muted: #7a7a8a;
-            --accent: #d4a853;
-            --accent-dim: #b8923f;
-            --success: #4ade80;
-            --warning: #fbbf24;
-            --danger: #f87171;
-        }
+        /* WHY: Universal reset. QOL: Prevents default browser margins from ruining the clean layout. */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
+        /* WHY: Set up the dark mode theme. QOL: Reduces eye strain during late-night study sessions. */
         body {
-            font-family: 'DM Sans', sans-serif;
-            background: var(--bg);
-            color: var(--fg);
+            background-color: #121212; /* Deep dark background */
+            color: #e0e0e0; /* Off-white text for high contrast without glare */
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
             min-height: 100vh;
-            overflow: hidden;
+            padding: 2rem;
         }
-        
-        .font-display {
-            font-family: 'Space Grotesk', sans-serif;
+
+        /* WHY: Container for the top countdown. QOL: Keeps your ultimate goal front and center. */
+        #countdown-container {
+            font-size: 1.2rem;
+            color: #ff9800; /* Motivational orange */
+            margin-bottom: 2rem;
+            text-align: center;
+            font-weight: bold;
         }
-        
-        /* Subtle animated background */
-        .bg-pattern {
-            position: fixed;
-            inset: 0;
-            background: 
-                radial-gradient(ellipse 80% 50% at 50% -20%, rgba(212, 168, 83, 0.08) 0%, transparent 50%),
-                radial-gradient(ellipse 60% 40% at 80% 100%, rgba(212, 168, 83, 0.05) 0%, transparent 40%),
-                var(--bg);
-            z-index: -1;
+
+        /* WHY: Container for the dynamic quotes. QOL: Provides continuous motivation without cluttering the screen. */
+        #quote-container {
+            font-size: 1.1rem;
+            font-style: italic;
+            color: #b3b3b3;
+            text-align: center;
+            max-width: 800px;
+            margin-bottom: 3rem;
+            min-height: 60px; /* WHY: Fixed min-height. QOL: Prevents the page layout from jumping around when quote lengths change. */
         }
-        
-        /* Floating particles */
-        .particle {
-            position: fixed;
-            width: 2px;
-            height: 2px;
-            background: var(--accent);
-            border-radius: 50%;
-            opacity: 0.3;
-            animation: float 20s infinite ease-in-out;
+
+        /* WHY: The massive timer display. QOL: Easily readable at a glance, even if the window is snapped to the side of your screen. */
+        #timer-display {
+            font-size: 6rem;
+            font-weight: bold;
+            font-variant-numeric: tabular-nums; /* WHY: Tabular nums. QOL: Stops the timer text from wiggling left/right as numbers change width. */
+            letter-spacing: 2px;
+            margin-bottom: 2rem;
+            color: #ffffff;
         }
-        
-        @keyframes float {
-            0%, 100% { transform: translateY(0) translateX(0); opacity: 0.2; }
-            50% { transform: translateY(-100px) translateX(30px); opacity: 0.5; }
-        }
-        
-        /* Timer glow effect */
-        .timer-glow {
-            text-shadow: 0 0 60px rgba(212, 168, 83, 0.3);
-        }
-        
-        .timer-glow-active {
-            animation: pulse-glow 2s infinite ease-in-out;
-        }
-        
-        @keyframes pulse-glow {
-            0%, 100% { text-shadow: 0 0 60px rgba(212, 168, 83, 0.3); }
-            50% { text-shadow: 0 0 80px rgba(212, 168, 83, 0.5); }
-        }
-        
-        /* Button styles */
-        .btn {
-            font-family: 'Space Grotesk', sans-serif;
-            font-weight: 500;
-            padding: 12px 32px;
-            border-radius: 8px;
+
+        /* WHY: Button layout container. QOL: Keeps buttons neatly aligned and spaced. */
+        .controls { display: flex; gap: 1rem; margin-bottom: 3rem; }
+
+        /* WHY: Base button styling. QOL: Large click targets, satisfying hover effects for tactile feedback. */
+        button {
+            padding: 1rem 2rem;
+            font-size: 1.2rem;
             border: none;
+            border-radius: 8px;
             cursor: pointer;
-            transition: all 0.2s ease;
-            font-size: 15px;
-            letter-spacing: 0.5px;
+            font-weight: bold;
+            transition: all 0.2s ease; /* WHY: Smooth transition. QOL: Feels premium and responsive to use. */
         }
         
-        .btn:focus-visible {
-            outline: 2px solid var(--accent);
-            outline-offset: 2px;
-        }
+        /* WHY: Distinct button colors. QOL: Prevents accidental clicks. Green = Go, Yellow = Wait, Red = Stop. */
+        #btn-start { background-color: #4caf50; color: white; }
+        #btn-start:hover { background-color: #45a049; }
         
-        .btn-primary {
-            background: var(--accent);
-            color: var(--bg);
-        }
+        #btn-pause { background-color: #ffc107; color: black; }
+        #btn-pause:hover { background-color: #ffb300; }
         
-        .btn-primary:hover {
-            background: var(--accent-dim);
-            transform: translateY(-1px);
-        }
-        
-        .btn-secondary {
-            background: var(--card);
-            color: var(--fg);
-            border: 1px solid var(--border);
-        }
-        
-        .btn-secondary:hover {
-            background: var(--bg-elevated);
-            border-color: var(--accent);
-        }
-        
-        .btn-danger {
-            background: transparent;
-            color: var(--danger);
-            border: 1px solid var(--danger);
-        }
-        
-        .btn-danger:hover {
-            background: rgba(248, 113, 113, 0.1);
-        }
-        
-        /* Card styles */
-        .stat-card {
-            background: var(--card);
-            border: 1px solid var(--border);
+        #btn-stop { background-color: #f44336; color: white; }
+        #btn-stop:hover { background-color: #e53935; }
+
+        /* WHY: Stats grid container. QOL: Organizes complex data into a readable dashboard. */
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* WHY: Auto-fit grid. QOL: Automatically adjusts layout for mobile vs desktop. */
+            gap: 1.5rem;
+            width: 100%;
+            max-width: 800px;
+            background-color: #1e1e1e;
+            padding: 2rem;
             border-radius: 12px;
-            padding: 16px 20px;
-            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
         }
-        
-        .stat-card:hover {
-            border-color: rgba(212, 168, 83, 0.3);
+
+        /* WHY: Individual stat boxes. QOL: Distinct separation of data points. */
+        .stat-box { text-align: center; }
+        .stat-label { font-size: 0.9rem; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+        .stat-value { font-size: 1.5rem; font-weight: bold; margin-top: 0.5rem; color: #4fc3f7; }
+
+        /* WHY: The daily rank/status message. QOL: Gives immediate psychological feedback on your day's effort. */
+        #daily-status {
+            grid-column: 1 / -1; /* Spans the whole grid row */
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #333;
         }
-        
-        /* Quote animation */
-        .quote-container {
-            opacity: 1;
-            transition: opacity 0.5s ease;
+
+        /* WHY: Custom Modal (Popup) styling. QOL: Built-in browser alerts (alert()) look ugly and block the thread. This looks modern and integrated. */
+        #session-modal {
+            display: none; /* Hidden by default */
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            justify-content: center; align-items: center;
+            z-index: 1000;
         }
-        
-        .quote-fade {
-            opacity: 0;
+        .modal-content {
+            background: #2c2c2c;
+            padding: 3rem;
+            border-radius: 12px;
+            text-align: center;
+            max-width: 500px;
+            border: 1px solid #4caf50;
         }
-        
-        /* Status badge */
-        .status-badge {
-            display: inline-block;
-            padding: 6px 16px;
-            border-radius: 20px;
-            font-size: 13px;
-            font-weight: 500;
-            letter-spacing: 0.5px;
-        }
-        
-        /* Session message */
-        .session-message {
-            animation: slideUp 0.4s ease;
-        }
-        
-        @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        /* Countdown flip animation */
-        .countdown-unit {
-            position: relative;
-        }
-        
-        /* Scrollbar hidden but functional */
-        ::-webkit-scrollbar {
-            width: 0;
-            height: 0;
-        }
-        
-        /* Reduced motion */
-        @media (prefers-reduced-motion: reduce) {
-            .particle,
-            .timer-glow-active,
-            .quote-container,
-            .session-message {
-                animation: none !important;
-                transition: none !important;
-            }
-        }
+        .modal-content p { font-size: 1.2rem; margin-bottom: 2rem; line-height: 1.5; }
+        .modal-content button { background: #4caf50; color: white; }
     </style>
 </head>
 <body>
-    <div class="bg-pattern"></div>
+
+    <div id="countdown-container">Time until GATE (1 Feb 2027): <span id="gate-countdown"></span></div>
     
-    <!-- Floating particles -->
-    <div class="particle" style="left: 10%; top: 20%;"></div>
-    <div class="particle" style="left: 85%; top: 30%; animation-delay: -5s;"></div>
-    <div class="particle" style="left: 25%; top: 70%; animation-delay: -10s;"></div>
-    <div class="particle" style="left: 75%; top: 80%; animation-delay: -15s;"></div>
-    <div class="particle" style="left: 50%; top: 10%; animation-delay: -7s;"></div>
-    
-    <div class="h-screen flex flex-col p-4 md:p-6 lg:p-8 max-w-7xl mx-auto">
-        
-        <!-- Header: Countdown -->
-        <header class="flex items-center justify-between mb-6">
-            <div>
-                <h1 class="font-display text-lg md:text-xl font-semibold text-[var(--fg)]">GATE 2027</h1>
-                <p class="text-[var(--muted)] text-sm">CS & DA</p>
-            </div>
-            <div class="stat-card flex items-center gap-4">
-                <span class="text-[var(--muted)] text-sm hidden sm:inline">Countdown</span>
-                <div id="countdown" class="font-display text-xl md:text-2xl font-semibold text-[var(--accent)]">
-                    --:--:--:--
-                </div>
-            </div>
-        </header>
-        
-        <!-- Main Content -->
-        <main class="flex-1 flex flex-col lg:flex-row gap-6 min-h-0">
-            
-            <!-- Timer Section -->
-            <section class="flex-1 flex flex-col items-center justify-center">
-                <div class="text-center">
-                    <!-- Session Info -->
-                    <div id="sessionInfo" class="h-6 mb-4 text-[var(--muted)] text-sm"></div>
-                    
-                    <!-- Main Timer -->
-                    <div id="timerDisplay" class="font-display text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-bold text-[var(--fg)] timer-glow tracking-tight">
-                        00:00:00
-                    </div>
-                    
-                    <!-- Session End Message -->
-                    <div id="sessionMessage" class="mt-6 h-16"></div>
-                    
-                    <!-- Controls -->
-                    <div id="controls" class="flex items-center justify-center gap-3 mt-8">
-                        <button id="startBtn" class="btn btn-primary" aria-label="Start timer">Start</button>
-                        <button id="pauseBtn" class="btn btn-secondary hidden" aria-label="Pause timer">Pause</button>
-                        <button id="resumeBtn" class="btn btn-primary hidden" aria-label="Resume timer">Resume</button>
-                        <button id="stopBtn" class="btn btn-danger hidden" aria-label="Stop timer">Stop</button>
-                    </div>
-                </div>
-            </section>
-            
-            <!-- Stats Section -->
-            <aside class="lg:w-80 flex flex-col gap-4">
-                
-                <!-- Today's Status -->
-                <div class="stat-card">
-                    <div class="flex items-center justify-between mb-3">
-                        <span class="text-[var(--muted)] text-sm font-medium">Today</span>
-                        <span id="todayStatus" class="status-badge bg-[var(--card)] text-[var(--muted)] border border-[var(--border)]">
-                            Start Studying
-                        </span>
-                    </div>
-                    <div id="todayTime" class="font-display text-3xl font-bold text-[var(--fg)]">0h 0m</div>
-                </div>
-                
-                <!-- Weekly Stats -->
-                <div class="stat-card">
-                    <span class="text-[var(--muted)] text-sm font-medium">This Week</span>
-                    <div id="weekTime" class="font-display text-2xl font-semibold text-[var(--fg)] mt-1">0h 0m</div>
-                </div>
-                
-                <!-- Monthly Stats -->
-                <div class="stat-card">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-[var(--muted)] text-sm font-medium">This Month</span>
-                    </div>
-                    <div id="monthTime" class="font-display text-2xl font-semibold text-[var(--fg)]">0h 0m</div>
-                    <div class="mt-3 pt-3 border-t border-[var(--border)]">
-                        <div class="flex items-center justify-between">
-                            <span class="text-[var(--muted)] text-xs">Daily Average</span>
-                            <span id="avgTime" class="text-[var(--fg)] text-sm font-medium">0h 0m</span>
-                        </div>
-                    </div>
-                </div>
-                
-            </aside>
-        </main>
-        
-        <!-- Quote Section -->
-        <footer class="mt-6 text-center">
-            <div id="quoteContainer" class="quote-container">
-                <p id="quoteText" class="text-[var(--muted)] text-sm md:text-base italic max-w-2xl mx-auto leading-relaxed"></p>
-            </div>
-        </footer>
-        
+    <div id="quote-container">Loading wisdom...</div>
+
+    <div id="timer-display">00:00:00</div>
+
+    <div class="controls">
+        <button id="btn-start">Start</button>
+        <button id="btn-pause">Pause</button>
+        <button id="btn-stop">Stop</button>
     </div>
-    
+
+    <div class="stats-container">
+        <div class="stat-box"><div class="stat-label">Today</div><div class="stat-value" id="stat-today">0h 0m</div></div>
+        <div class="stat-box"><div class="stat-label">This Week</div><div class="stat-value" id="stat-week">0h 0m</div></div>
+        <div class="stat-box"><div class="stat-label">This Month</div><div class="stat-value" id="stat-month">0h 0m</div></div>
+        <div class="stat-box"><div class="stat-label">Daily Avg (Month)</div><div class="stat-value" id="stat-avg">0h 0m</div></div>
+        <div id="daily-status">Dusht & Paapi</div>
+    </div>
+
+    <div id="session-modal">
+        <div class="modal-content">
+            <p id="modal-text"></p>
+            <button onclick="closeModal()">Acknowledge</button>
+        </div>
+    </div>
+
     <script>
-        // ==========================================
-        // DATA & STATE INITIALIZATION
-        // ==========================================
-        
-        const GATE_DATE = new Date('2027-02-01T09:00:00+05:30');
-        
+        // --- QUOTES DATA ---
+        // WHY: Array of all provided quotes. QOL: Centralized data structure makes it easy to add more later.
         const quotes = [
-            { author: "Gurudev", text: "Sukh ho ya dukh, ek hi vichaar — Ladli Ju ki kripa hai." },
-            { author: "Gurudev", text: "Shan shan mein kripa hi kripa hai." },
-            { author: "Gurudev", text: "Yugal Sarkar ki bahut kripa hai — bas yahi yaad rakho." },
-            { author: "Gurudev", text: "Bhajan Shri Ji ke liye, Shri Ji ke dwara hi hoga." },
-            { author: "Gurudev", text: "Sadhan bhi priyalal, sadhya bhi priyalal." },
-            { author: "Gurudev", text: "Sharanagati matlab — saari bhar unki, teri koi nahi." },
-            { author: "Gurudev", text: "Nirantar naam japa — Radha Radha... yahi tera kaam hai." },
-            { author: "Gurudev", text: "Chinta karna matlab Radha Rani par vishwas nahi karna." },
-            { author: "Gurudev", text: "Tera man, tera sharir — sab kuch unka ho gaya hai." },
-            { author: "Gurudev", text: "Ab tu unka ho gaya hai, toh saari bhar unki hai." },
-            { author: "Gurudev", text: "Vikaar aaye toh rona mat — sirf bolna, Naath app dekhlo." },
-            { author: "Gurudev", text: "Bemani mat karna — unki sharanagati mein manmani nahi chalti." },
-            { author: "Gurudev", text: "Tere bhaav, aacharan, vritti — inki chinta unhe hai, tujhe nahi." },
-            { author: "Gurudev", text: "Unki nirmal yash ka kalank mat ban jaana." },
-            { author: "Gurudev", text: "Vishwas kar, chinta mat kar — bas itna kaafi hai." },
-            { author: "Gurudev", text: "Hey Naath, aaj se saara bhaar apka — ab chinta khatam." },
-            { author: "Gurudev", text: "Ro do bhai, par bolna — Naath app dekhlo, nischint raho." },
-            { author: "Gurudev", text: "Dosho ki chinta nahi — unke saamne aao, woh dekh lenge." },
-            { author: "Gurudev", text: "Mera sharan hokar chinta karta hai? Bilkul nahi karna." },
-            { author: "Gurudev", text: "Gurudev ne sharanagati di hai — ab teri zimmedaari unki hai." },
-            { author: "Radha Rani", text: "Tera bhaar mujhe de de — tu khali ho ja." },
-            { author: "Radha Rani", text: "Mera naam le — bas itna hi tera kaam hai." },
-            { author: "Radha Rani", text: "Tu kuch nahi kar sakta, main sab kar sakti hoon." },
-            { author: "Radha Rani", text: "Tera jeevan mera hai — main hi chalaaungi." },
-            { author: "Radha Rani", text: "Teri samarthya nahi hai, meri hai — is fark ko samajh le." },
-            { author: "Radha Rani", text: "Tu mera hai — toh teri chinta bhi meri hai." },
-            { author: "Radha Rani", text: "Tujhe meri yaad chahiye, mujhe teri — yahi rishta hai." },
-            { author: "Radha Rani", text: "Har pal meri kripa hai — tu dekh nahi raha, main hoon yahan." },
-            { author: "Radha Rani", text: "Bhajan bhi main karaaungi, tu bas aane de mujhe." },
-            { author: "Radha Rani", text: "Tere dosh tere nahi — la, mujhe de de." },
-            { author: "Radha Rani", text: "Tu ghabra mat — jo nahi kar sakta, woh main karti hoon." },
-            { author: "Radha Rani", text: "Ek second bhi meri kripa ke bina nahi guzra tere liye." },
-            { author: "Radha Rani", text: "Teri mehnat bhi meri, tera result bhi mera." },
-            { author: "Radha Rani", text: "Naam le mera — baki main sambhal lungi." },
-            { author: "Radha Rani", text: "Tu shunya hai, main poorna hoon — mil ja mujhse." },
-            { author: "Radha Rani", text: "Tera dil dukhta hai? La, mujhe dikha — main dekhti hoon." },
-            { author: "Radha Rani", text: "Tujhe toppers list mein main le jaaungi — tu vishwas rakh." },
-            { author: "Radha Rani", text: "Teri neend, teri padhai, tera waqt — sab mera hai." },
-            { author: "Radha Rani", text: "Jo teri samajh se bahar hai, woh meri pakad mein hai." },
-            { author: "Radha Rani", text: "Tu roz aaja mere paas — main roz nayi shakti dungi." },
-            { author: "Radha Rani", text: "Teri koshish meri hai — main ise vyarth nahi jaane dungi." },
-            { author: "Radha Rani", text: "Har quiz, har session — main hoon tere saath." },
-            { author: "Radha Rani", text: "Tera guru bhi mera, teri padhai bhi meri — chhod de mujhe sab." },
-            { author: "Radha Rani", text: "Tujhe sirf yaad rakhna hai mujhe — baki sab mera kaam hai." },
-            { author: "Radha Rani", text: "Dard mein bhi meri kripa hai — aankhein khol ke dekh." },
-            { author: "Radha Rani", text: "Tu akela nahi hai — main hoon, hamesha hoon." },
-            { author: "Radha Rani", text: "Teri kamzori meri taaqat mein sama jaati hai." },
-            { author: "Radha Rani", text: "Agar tu shunya bane, main poora bhar dungi." },
-            { author: "Radha Rani", text: "Naam jap mera — yahi tera sabse bada kaam hai." },
-            { author: "Radha Rani", text: "Teri aansu bhi mujhe pyaare hain — ro le, main hoon." },
-            { author: "Radha Rani", text: "Tu strategy mat bana — main raah dikhaaungi." },
-            { author: "Shriyash", text: "Mujhme samarthya nahi — Shri Ji hi kuch kar sakti hain." },
-            { author: "Shriyash", text: "Ye jeevan mera nahi — Radha Rani ka hai." },
-            { author: "Shriyash", text: "Ek second aur guzra — abhi bhi unki hi kripa thi." },
-            { author: "Shriyash", text: "Mujhe bas unki yaad chahiye, aur kuch nahi." },
-            { author: "Shriyash", text: "Mein apne se kuch nahi kar sakta — ye sach hai." },
-            { author: "Shriyash", text: "Apki kripa se jeevan chalega — meri taaqat se nahi." },
-            { author: "Shriyash", text: "App hi mere sab kuch hain — is baat ko bhoolna nahi." },
-            { author: "Shriyash", text: "Jo main nahi kar sakta, Shri Ji kar sakti hain." },
-            { author: "Shriyash", text: "Mera dosh hai — par unhe de diya, ab chinta nahi." },
-            { author: "Shriyash", text: "Sir ka sapna poora karna mere bas mein nahi — Shri Ji ke bas mein hai." },
-            { author: "Shriyash", text: "Mein zero hoon — Shri Ji number one hain." },
-            { author: "Shriyash", text: "Unhe galat mat kehne dena — yahi meri ek zimmedaari hai." },
-            { author: "Shriyash", text: "Har dukh mein ek hi baat — Ladli Ju ki badi kripa hai." },
-            { author: "Shriyash", text: "Mera man unka, mera sharir unka, mein unka." },
-            { author: "Shriyash", text: "Chinta karna matlab unpar shak karna — nahi karna." },
-            { author: "Shriyash", text: "Vikaar aaya — seedha unke paas chala jaata hoon." },
-            { author: "Shriyash", text: "Naath app dekhlo — itna bolna kaafi hai, rona bhi theek hai." },
-            { author: "Shriyash", text: "Shan shan mein kripa hai — mujhe sirf dekhna hai." },
-            { author: "Shriyash", text: "Unki sharanagati mein hoon — toh bhar unhi ki hai." },
-            { author: "Shriyash", text: "Mera waqt unka hai — main ispe haq nahi jata." },
-            { author: "Shriyash", text: "Padhai bhi unki, rank bhi unka — mein bas nimit hoon." },
-            { author: "Shriyash", text: "Unpar bharosa hai — toh mehnat mein darna kaisa." },
-            { author: "Shriyash", text: "Sadhan bhi unka, sadhya bhi unka — main beech mein kaun?" },
-            { author: "Shriyash", text: "Ek naam — Radha — itna hi kaafi hai mere liye." },
-            { author: "Shriyash", text: "Jo main nahi sambhal sakta, woh unka kaam hai." },
-            { author: "Shriyash", text: "Unka kehlakar bhi aisa karta hoon — Naath app hi dekhlo." },
-            { author: "Shriyash", text: "Mein weak hoon — isliye Shri Ji mere liye perfect hain." },
-            { author: "Shriyash", text: "Weekly quiz unka hai — main sirf upasthit hota hoon." },
-            { author: "Shriyash", text: "Roz unka naam lena — yahi meri sabse badi koshish hai." },
-            { author: "Shriyash", text: "Agar main toppers list mein hoon — toh woh Shri Ji hain, main nahi." },
-            { author: "Shriyash", text: "Plan banana meri aadat hai — chhodna Shri Ji ka kaam hai." },
-            { author: "Shriyash", text: "Unki nirmal yash — iska dhyaan rakhna meri pehli duty hai." },
-            { author: "Shriyash", text: "Jo nahi hota mujhse — woh Shri Ji se hota hai." },
-            { author: "Shriyash", text: "Khud par nahi, unpar nazar rakhna — yahi sahi hai." },
-            { author: "Shriyash", text: "Hard-work meri taaqat nahi — Shri Ji ki den hai." },
-            { author: "Shriyash", text: "Gurudev ne raah dikhaai, Shri Ji raah hain — main sirf chalun." },
-            { author: "Shriyash", text: "Mein kuch bhi nahi — Shri Ji sab kuch hain." },
-            { author: "Shriyash", text: "Unpe chhodna weakness nahi — sabse badi samajhdaari hai." },
-            { author: "Shriyash", text: "Roj ek kadam — Shri Ji baaki sambhalti hain." },
-            { author: "Shriyash", text: "Mera best bhi unki kripa hai — apna nahi keh sakta." },
-            { author: "Shriyash", text: "Unka naam lena — yahi meri consistency hai." },
-            { author: "Shriyash", text: "Agar main kuch bhi achieve karun — Shri Ji ne kiya, main nahi." },
-            { author: "Shriyash", text: "Ghabrana nahi — Shri Ji hain na." },
-            { author: "Shriyash", text: "Unke bina ek pal bhi theek se nahi guzarta." },
-            { author: "Shriyash", text: "Meri sab zimmedaariyan — unke haath mein de di hain." },
-            { author: "Shriyash", text: "Jo mujhe pata nahi — unhe pata hai, bas." },
-            { author: "Shriyash", text: "Roz unhe bolna — app dekhlo, main hoon hi nahi yahan." },
-            { author: "Shriyash", text: "Meri taraf se kuch nahi — unki taraf se sab kuch." },
-            { author: "Shriyash", text: "Unka naam meri sabse badi tayyaari hai." },
-            { author: "Shriyash", text: "Apni kamzori dekhta hoon toh — unki zaroorat aur zyada lagti hai." }
+            "Gurudev, \"Sukh ho ya dukh, ek hi vichaar — Ladli Ju ki kripa hai.\"",
+            "Gurudev, \"Shan shan mein kripa hi kripa hai.\"",
+            "Gurudev, \"Yugal Sarkar ki bahut kripa hai — bas yahi yaad rakho.\"",
+            "Gurudev, \"Bhajan Shri Ji ke liye, Shri Ji ke dwara hi hoga.\"",
+            "Gurudev, \"Sadhan bhi priyalal, sadhya bhi priyalal.\"",
+            "Gurudev, \"Sharanagati matlab — saari bhar unki, teri koi nahi.\"",
+            "Gurudev, \"Nirantar naam japa — Radha Radha... yahi tera kaam hai.\"",
+            "Gurudev, \"Chinta karna matlab Radha Rani par vishwas nahi karna.\"",
+            "Gurudev, \"Tera man, tera sharir — sab kuch unka ho gaya hai.\"",
+            "Gurudev, \"Ab tu unka ho gaya hai, toh saari bhar unki hai.\"",
+            "Gurudev, \"Vikaar aaye toh rona mat — sirf bolna, Naath app dekhlo.\"",
+            "Gurudev, \"Bemani mat karna — unki sharanagati mein manmani nahi chalti.\"",
+            "Gurudev, \"Tere bhaav, aacharan, vritti — inki chinta unhe hai, tujhe nahi.\"",
+            "Gurudev, \"Unki nirmal yash ka kalank mat ban jaana.\"",
+            "Gurudev, \"Vishwas kar, chinta mat kar — bas itna kaafi hai.\"",
+            "Gurudev, \"Hey Naath, aaj se saara bhaar apka — ab chinta khatam.\"",
+            "Gurudev, \"Ro do bhai, par bolna — Naath app dekhlo, nischint raho.\"",
+            "Gurudev, \"Dosho ki chinta nahi — unke saamne aao, woh dekh lenge.\"",
+            "Gurudev, \"Mera sharan hokar chinta karta hai? Bilkul nahi karna.\"",
+            "Gurudev, \"Gurudev ne sharanagati di hai — ab teri zimmedaari unki hai.\"",
+            "Radha Rani, \"Tera bhaar mujhe de de — tu khali ho ja.\"",
+            "Radha Rani, \"Mera naam le — bas itna hi tera kaam hai.\"",
+            "Radha Rani, \"Tu kuch nahi kar sakta, main sab kar sakti hoon.\"",
+            "Radha Rani, \"Tera jeevan mera hai — main hi chalaaungi.\"",
+            "Radha Rani, \"Teri samarthya nahi hai, meri hai — is fark ko samajh le.\"",
+            "Radha Rani, \"Tu mera hai — toh teri chinta bhi meri hai.\"",
+            "Radha Rani, \"Tujhe meri yaad chahiye, mujhe teri — yahi rishta hai.\"",
+            "Radha Rani, \"Har pal meri kripa hai — tu dekh nahi raha, main hoon yahan.\"",
+            "Radha Rani, \"Bhajan bhi main karaaungi, tu bas aane de mujhe.\"",
+            "Radha Rani, \"Tere dosh tere nahi — la, mujhe de de.\"",
+            "Radha Rani, \"Tu ghabra mat — jo nahi kar sakta, woh main karti hoon.\"",
+            "Radha Rani, \"Ek second bhi meri kripa ke bina nahi guzra tere liye.\"",
+            "Radha Rani, \"Teri mehnat bhi meri, tera result bhi mera.\"",
+            "Radha Rani, \"Naam le mera — baki main sambhal lungi.\"",
+            "Radha Rani, \"Tu shunya hai, main poorna hoon — mil ja mujhse.\"",
+            "Radha Rani, \"Tera dil dukhta hai? La, mujhe dikha — main dekhti hoon.\"",
+            "Radha Rani, \"Tujhe toppers list mein main le jaaungi — tu vishwas rakh.\"",
+            "Radha Rani, \"Teri neend, teri padhai, tera waqt — sab mera hai.\"",
+            "Radha Rani, \"Jo teri samajh se bahar hai, woh meri pakad mein hai.\"",
+            "Radha Rani, \"Tu roz aaja mere paas — main roz nayi shakti dungi.\"",
+            "Radha Rani, \"Teri koshish meri hai — main ise vyarth nahi jaane dungi.\"",
+            "Radha Rani, \"Har quiz, har session — main hoon tere saath.\"",
+            "Radha Rani, \"Tera guru bhi mera, teri padhai bhi meri — chhod de mujhe sab.\"",
+            "Radha Rani, \"Tujhe sirf yaad rakhna hai mujhe — baki sab mera kaam hai.\"",
+            "Radha Rani, \"Dard mein bhi meri kripa hai — aankhein khol ke dekh.\"",
+            "Radha Rani, \"Tu akela nahi hai — main hoon, hamesha hoon.\"",
+            "Radha Rani, \"Teri kamzori meri taaqat mein sama jaati hai.\"",
+            "Radha Rani, \"Agar tu shunya bane, main poora bhar dungi.\"",
+            "Radha Rani, \"Naam jap mera — yahi tera sabse bada kaam hai.\"",
+            "Radha Rani, \"Teri aansu bhi mujhe pyaare hain — ro le, main hoon.\"",
+            "Radha Rani, \"Tu strategy mat bana — main raah dikhaaungi.\"",
+            "Shriyash, \"Mujhme samarthya nahi — Shri Ji hi kuch kar sakti hain.\"",
+            "Shriyash, \"Ye jeevan mera nahi — Radha Rani ka hai.\"",
+            "Shriyash, \"Ek second aur guzra — abhi bhi unki hi kripa thi.\"",
+            "Shriyash, \"Mujhe bas unki yaad chahiye, aur kuch nahi.\"",
+            "Shriyash, \"Mein apne se kuch nahi kar sakta — ye sach hai.\"",
+            "Shriyash, \"Apki kripa se jeevan chalega — meri taaqat se nahi.\"",
+            "Shriyash, \"App hi mere sab kuch hain — is baat ko bhoolna nahi.\"",
+            "Shriyash, \"Jo main nahi kar sakta, Shri Ji kar sakti hain.\"",
+            "Shriyash, \"Mera dosh hai — par unhe de diya, ab chinta nahi.\"",
+            "Shriyash, \"Sir ka sapna poora karna mere bas mein nahi — Shri Ji ke bas mein hai.\"",
+            "Shriyash, \"Mein zero hoon — Shri Ji number one hain.\"",
+            "Shriyash, \"Unhe galat mat kehne dena — yahi meri ek zimmedaari hai.\"",
+            "Shriyash, \"Har dukh mein ek hi baat — Ladli Ju ki badi kripa hai.\"",
+            "Shriyash, \"Mera man unka, mera sharir unka, mein unka.\"",
+            "Shriyash, \"Chinta karna matlab unpar shak karna — nahi karna.\"",
+            "Shriyash, \"Vikaar aaya — seedha unke paas chala jaata hoon.\"",
+            "Shriyash, \"Naath app dekhlo — itna bolna kaafi hai, rona bhi theek hai.\"",
+            "Shriyash, \"Shan shan mein kripa hai — mujhe sirf dekhna hai.\"",
+            "Shriyash, \"Unki sharanagati mein hoon — toh bhar unhi ki hai.\"",
+            "Shriyash, \"Mera waqt unka hai — main ispe haq nahi jata.\"",
+            "Shriyash, \"Padhai bhi unki, rank bhi unka — mein bas nimit hoon.\"",
+            "Shriyash, \"Unpar bharosa hai — toh mehnat mein darna kaisa.\"",
+            "Shriyash, \"Sadhan bhi unka, sadhya bhi unka — main beech mein kaun?\"",
+            "Shriyash, \"Ek naam — Radha — itna hi kaafi hai mere liye.\"",
+            "Shriyash, \"Jo main nahi sambhal sakta, woh unka kaam hai.\"",
+            "Shriyash, \"Unka kehlakar bhi aisa karta hoon — Naath app hi dekhlo.\"",
+            "Shriyash, \"Mein weak hoon — isliye Shri Ji mere liye perfect hain.\"",
+            "Shriyash, \"Weekly quiz unka hai — main sirf upasthit hota hoon.\"",
+            "Shriyash, \"Roz unka naam lena — yahi meri sabse badi koshish hai.\"",
+            "Shriyash, \"Agar main toppers list mein hoon — toh woh Shri Ji hain, main nahi.\"",
+            "Shriyash, \"Plan banana meri aadat hai — chhodna Shri Ji ka kaam hai.\"",
+            "Shriyash, \"Unki nirmal yash — iska dhyaan rakhna meri pehli duty hai.\"",
+            "Shriyash, \"Jo nahi hota mujhse — woh Shri Ji se hota hai.\"",
+            "Shriyash, \"Khud par nahi, unpar nazar rakhna — yahi sahi hai.\"",
+            "Shriyash, \"Hard-work meri taaqat nahi — Shri Ji ki den hai.\"",
+            "Shriyash, \"Gurudev ne raah dikhaai, Shri Ji raah hain — main sirf chalun.\"",
+            "Shriyash, \"Mein kuch bhi nahi — Shri Ji sab kuch hain.\"",
+            "Shriyash, \"Unpe chhodna weakness nahi — sabse badi samajhdaari hai.\"",
+            "Shriyash, \"Roj ek kadam — Shri Ji baaki sambhalti hain.\"",
+            "Shriyash, \"Mera best bhi unki kripa hai — apna nahi keh sakta.\"",
+            "Shriyash, \"Unka naam lena — yahi meri consistency hai.\"",
+            "Shriyash, \"Agar main kuch bhi achieve karun — Shri Ji ne kiya, main nahi.\"",
+            "Shriyash, \"Ghabrana nahi — Shri Ji hain na.\"",
+            "Shriyash, \"Unke bina ek pal bhi theek se nahi guzarta.\"",
+            "Shriyash, \"Meri sab zimmedaariyan — unke haath mein de di hain.\"",
+            "Shriyash, \"Jo mujhe pata nahi — unhe pata hai, bas.\"",
+            "Shriyash, \"Roz unhe bolna — app dekhlo, main hoon hi nahi yahan.\"",
+            "Shriyash, \"Meri taraf se kuch nahi — unki taraf se sab kuch.\"",
+            "Shriyash, \"Unka naam meri sabse badi tayyaari hai.\"",
+            "Shriyash, \"Apni kamzori dekhta hoon toh — unki zaroorat aur zyada lagti hai.\""
         ];
+
+        // --- TIMER STATE VARIABLES ---
+        let startTime = 0; // WHY: Stores the absolute exact millisecond the timer started. QOL: Allows calculation of time even if the browser aggressively throttles the tab.
+        let totalElapsed = 0; // WHY: Accumulates time. QOL: Needed so pauses don't reset your progress.
+        let timerInterval = null; // WHY: Holds the setInterval ID. QOL: Allows us to clear/stop the loop precisely.
+        let isRunning = false; // WHY: Boolean lock. QOL: Prevents clicking 'Start' twice and creating runaway phantom timers.
+        let actualSessionStartString = ""; // WHY: Captures wall-clock start time. QOL: Required for the final "You studied between X and Y" message.
+
+        // --- DOM ELEMENTS ---
+        const display = document.getElementById('timer-display');
+        const quoteEl = document.getElementById('quote-container');
+
+        // --- CORE TIMER LOGIC ---
         
-        // Timer state
-        let timerState = {
-            isRunning: false,
-            isPaused: false,
-            startTime: null,
-            elapsedBeforePause: 0,
-            currentSessionStart: null
-        };
-        
-        // DOM Elements - initialized after DOM is ready
-        let countdownEl = null;
-        let timerDisplay = null;
-        let sessionInfo = null;
-        let sessionMessage = null;
-        let startBtn = null;
-        let pauseBtn = null;
-        let resumeBtn = null;
-        let stopBtn = null;
-        let todayTimeEl = null;
-        let todayStatusEl = null;
-        let weekTimeEl = null;
-        let monthTimeEl = null;
-        let avgTimeEl = null;
-        let quoteTextEl = null;
-        let quoteContainer = null;
-        
-        let timerInterval = null;
-        let countdownInterval = null;
-        let quoteInterval = null;
-        let currentQuoteIndex = 0;
-        
-        // ==========================================
-        // UTILITY FUNCTIONS
-        // ==========================================
-        
+        // WHY: Formatting function (ms -> HH:MM:SS). QOL: Humans read hours/mins/secs, not milliseconds. PadStart ensures "09" instead of "9".
         function formatTime(ms) {
-            const totalSeconds = Math.floor(ms / 1000);
-            const hours = Math.floor(totalSeconds / 3600);
-            const minutes = Math.floor((totalSeconds % 3600) / 60);
-            const seconds = totalSeconds % 60;
+            let totalSeconds = Math.floor(ms / 1000);
+            let hours = Math.floor(totalSeconds / 3600);
+            let minutes = Math.floor((totalSeconds % 3600) / 60);
+            let seconds = totalSeconds % 60;
             return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
         }
-        
-        function formatTimeShort(ms) {
-            const totalMinutes = Math.floor(ms / 60000);
-            const hours = Math.floor(totalMinutes / 60);
-            const minutes = totalMinutes % 60;
-            return `${hours}h ${minutes}m`;
-        }
-        
-        function formatTimeReadable(date) {
-            return date.toLocaleTimeString('en-IN', { 
-                hour: '2-digit', 
-                minute: '2-digit',
-                hour12: true 
-            });
-        }
-        
-        function getTodayKey() {
-            return new Date().toISOString().split('T')[0];
-        }
-        
-        function getWeekStart() {
-            const now = new Date();
-            const day = now.getDay();
-            const diff = now.getDate() - day + (day === 0 ? -6 : 1);
-            return new Date(now.setDate(diff));
-        }
-        
-        function getMonthStart() {
-            const now = new Date();
-            return new Date(now.getFullYear(), now.getMonth(), 1);
-        }
-        
-        // ==========================================
-        // STORAGE FUNCTIONS
-        // ==========================================
-        
-        function getSessions() {
-            try {
-                const data = localStorage.getItem('gate_study_sessions');
-                return data ? JSON.parse(data) : [];
-            } catch (e) {
-                return [];
+
+        // WHY: The core update loop. QOL: Runs frequently to update UI. Because it relies on Date.now(), if the tab is backgrounded and misses ticks, it instantly "catches up" the second you open the tab again.
+        function updateDisplay() {
+            if (isRunning) {
+                totalElapsed = Date.now() - startTime;
             }
+            display.textContent = formatTime(totalElapsed);
         }
-        
-        function saveSession(session) {
-            const sessions = getSessions();
-            sessions.push(session);
-            localStorage.setItem('gate_study_sessions', JSON.stringify(sessions));
-        }
-        
-        function saveTimerState() {
-            localStorage.setItem('gate_timer_state', JSON.stringify(timerState));
-        }
-        
-        function loadTimerState() {
-            try {
-                const saved = localStorage.getItem('gate_timer_state');
-                if (saved) {
-                    const parsed = JSON.parse(saved);
-                    timerState.isRunning = parsed.isRunning || false;
-                    timerState.isPaused = parsed.isPaused || false;
-                    timerState.startTime = parsed.startTime ? new Date(parsed.startTime) : null;
-                    timerState.elapsedBeforePause = parsed.elapsedBeforePause || 0;
-                    timerState.currentSessionStart = parsed.currentSessionStart ? new Date(parsed.currentSessionStart) : null;
+
+        document.getElementById('btn-start').addEventListener('click', () => {
+            if (!isRunning) { // WHY: Check if already running. QOL: Protects state.
+                isRunning = true;
+                startTime = Date.now() - totalElapsed; // WHY: Subtract elapsed. QOL: If resuming from pause, this shifts the "startTime" back so the math perfectly accounts for time already studied.
+                if (totalElapsed === 0) {
+                    actualSessionStartString = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); // WHY: Format to short time. QOL: Looks cleaner (e.g., "10:30 AM" instead of a huge string).
                 }
-            } catch (e) {
-                console.error('Error loading timer state:', e);
+                timerInterval = setInterval(updateDisplay, 100); // WHY: 100ms update. QOL: Fast enough to feel instantly responsive, slow enough to not drain battery.
             }
-        }
-        
-        // ==========================================
-        // STATS CALCULATIONS
-        // ==========================================
-        
-        function calculateStats() {
-            const sessions = getSessions();
-            const now = new Date();
-            const todayKey = getTodayKey();
-            const weekStart = getWeekStart();
-            const monthStart = getMonthStart();
-            
-            let todayTotal = 0;
-            let weekTotal = 0;
-            let monthTotal = 0;
-            let monthDays = new Set();
-            
-            sessions.forEach(session => {
-                const sessionDate = new Date(session.start);
-                const sessionKey = session.start.split('T')[0];
-                
-                // Today
-                if (sessionKey === todayKey) {
-                    todayTotal += session.duration;
-                }
-                
-                // This week
-                if (sessionDate >= weekStart) {
-                    weekTotal += session.duration;
-                }
-                
-                // This month
-                if (sessionDate >= monthStart) {
-                    monthTotal += session.duration;
-                    monthDays.add(sessionKey);
-                }
-            });
-            
-            // Add current session if running
-            if (timerState.isRunning && timerState.startTime) {
-                const currentElapsed = timerState.elapsedBeforePause + (Date.now() - timerState.startTime.getTime());
-                
-                // For today
-                if (timerState.currentSessionStart) {
-                    const sessionKey = timerState.currentSessionStart.toISOString().split('T')[0];
-                    if (sessionKey === todayKey) {
-                        todayTotal += currentElapsed;
-                    }
-                    if (timerState.currentSessionStart >= weekStart) {
-                        weekTotal += currentElapsed;
-                    }
-                    if (timerState.currentSessionStart >= monthStart) {
-                        monthTotal += currentElapsed;
-                        monthDays.add(sessionKey);
-                    }
-                }
+        });
+
+        document.getElementById('btn-pause').addEventListener('click', () => {
+            if (isRunning) {
+                isRunning = false;
+                clearInterval(timerInterval); // WHY: Stops the loop. QOL: Pauses tracking immediately for your break.
+                totalElapsed = Date.now() - startTime; // WHY: Final calculation before stopping loop. QOL: Ensures absolute precision.
+                updateDisplay(); // WHY: One last UI update. QOL: Secures the visual state.
             }
+        });
+
+        document.getElementById('btn-stop').addEventListener('click', () => {
+            if (totalElapsed === 0 && !isRunning) return; // WHY: Guard clause. QOL: Clicking stop on 00:00:00 does nothing, preventing blank entries.
             
-            const avgDaily = monthDays.size > 0 ? monthTotal / monthDays.size : 0;
-            
-            return { todayTotal, weekTotal, monthTotal, avgDaily };
-        }
-        
-        function getStatusMessage(ms) {
-            const hours = ms / (1000 * 60 * 60);
-            
-            if (hours < 5) {
-                return { text: 'Dusht & Paapi', class: 'bg-red-500/20 text-red-400 border border-red-500/30' };
-            } else if (hours < 8) {
-                return { text: 'Good. Keep Going.', class: 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' };
-            } else if (hours < 11) {
-                return { text: 'Very good. But need more.', class: 'bg-blue-500/20 text-blue-400 border border-blue-500/30' };
-            } else {
-                return { text: 'Ranker!', class: 'bg-green-500/20 text-green-400 border border-green-500/30' };
+            // WHY: Force a final update if running. QOL: Captures the exact millisecond you clicked stop.
+            if (isRunning) {
+                isRunning = false;
+                clearInterval(timerInterval);
+                totalElapsed = Date.now() - startTime;
             }
+
+            let actualSessionEndString = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            let durationString = formatTime(totalElapsed);
+
+            // WHY: Save function call. QOL: Persists your hard work to local storage so a page refresh doesn't destroy your history.
+            saveSessionToLog(totalElapsed);
+
+            // WHY: Show custom modal. QOL: Alert() blocks JS thread and is annoying. Modals are seamless.
+            document.getElementById('modal-text').innerText = `You studied between ${actualSessionStartString} and ${actualSessionEndString}.\nYou studied for ${durationString}.`;
+            document.getElementById('session-modal').style.display = 'flex';
+
+            // WHY: Reset state. QOL: Readies the tracker for the next session.
+            totalElapsed = 0;
+            updateDisplay();
+            updateStats(); // WHY: Update dashboard. QOL: You instantly see your new totals increase.
+        });
+
+        // WHY: Closes the modal. QOL: Gives you control to dismiss the message.
+        function closeModal() {
+            document.getElementById('session-modal').style.display = 'none';
         }
+
+        // --- DATA LOGGING & STATS LOGIC ---
         
-        // ==========================================
-        // UI UPDATE FUNCTIONS
-        // ==========================================
-        
+        // WHY: LocalStorage wrapper. QOL: Saves data directly to the browser. Works completely offline, requires no database or backend.
+        function saveSessionToLog(durationMs) {
+            let today = new Date().toISOString().split('T')[0]; // WHY: Gets YYYY-MM-DD. QOL: Standardized key for grouping daily study time.
+            let logs = JSON.parse(localStorage.getItem('gate_study_logs')) || {};
+            
+            if (!logs[today]) logs[today] = 0;
+            logs[today] += durationMs; // Add new session time to today's total
+            
+            localStorage.setItem('gate_study_logs', JSON.stringify(logs));
+        }
+
+        // WHY: Formats ms to 'Xh Ym'. QOL: "5h 30m" is vastly easier to read on a dashboard than "05:30:00".
+        function formatStatsTime(ms) {
+            let totalMins = Math.floor(ms / 60000);
+            let hours = Math.floor(totalMins / 60);
+            let mins = totalMins % 60;
+            return `${hours}h ${mins}m`;
+        }
+
+        // WHY: The heavy lifting for the dashboard. QOL: Automatically calculates daily, weekly, and monthly progress based on real calendar days.
         function updateStats() {
-            const stats = calculateStats();
+            let logs = JSON.parse(localStorage.getItem('gate_study_logs')) || {};
+            let now = new Date();
+            let todayStr = now.toISOString().split('T')[0];
             
-            todayTimeEl.textContent = formatTimeShort(stats.todayTotal);
-            weekTimeEl.textContent = formatTimeShort(stats.weekTotal);
-            monthTimeEl.textContent = formatTimeShort(stats.monthTotal);
-            avgTimeEl.textContent = formatTimeShort(stats.avgDaily);
+            let todayMs = logs[todayStr] || 0;
             
-            const status = getStatusMessage(stats.todayTotal);
-            todayStatusEl.textContent = status.text;
-            todayStatusEl.className = `status-badge ${status.class}`;
-        }
-        
-        function updateTimerDisplay() {
-            if (!timerState.isRunning || timerState.isPaused) {
-                const elapsed = timerState.elapsedBeforePause;
-                timerDisplay.textContent = formatTime(elapsed);
-                return;
+            // Week Calculation
+            // WHY: Determine start of current week (Monday). QOL: Aligns with standard student planning cycles.
+            let dayOfWeek = now.getDay();
+            let distanceToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; 
+            let startOfWeek = new Date(now);
+            startOfWeek.setDate(now.getDate() - distanceToMonday);
+            startOfWeek.setHours(0,0,0,0);
+
+            let weekMs = 0;
+            let monthMs = 0;
+            let daysStudiedThisMonth = 0;
+
+            let currentMonth = now.getMonth();
+            let currentYear = now.getFullYear();
+
+            // WHY: Loop through all saved logs. QOL: Dynamically bucket time into Week and Month without complex database queries.
+            for (const [dateStr, ms] of Object.entries(logs)) {
+                let logDate = new Date(dateStr);
+                
+                // Week
+                if (logDate >= startOfWeek) {
+                    weekMs += ms;
+                }
+                
+                // Month
+                if (logDate.getMonth() === currentMonth && logDate.getFullYear() === currentYear) {
+                    monthMs += ms;
+                    daysStudiedThisMonth++;
+                }
             }
+
+            // Averages
+            // WHY: Calculate average. QOL: Shows your realistic pace, ignoring days you haven't lived yet.
+            let avgMs = daysStudiedThisMonth === 0 ? 0 : monthMs / daysStudiedThisMonth;
+
+            // Update UI
+            document.getElementById('stat-today').innerText = formatStatsTime(todayMs);
+            document.getElementById('stat-week').innerText = formatStatsTime(weekMs);
+            document.getElementById('stat-month').innerText = formatStatsTime(monthMs);
+            document.getElementById('stat-avg').innerText = formatStatsTime(avgMs);
+
+            // Motivational Logic
+            // WHY: Converts ms to hours for conditional checks. QOL: Directly implements your requested tier system.
+            let todayHours = todayMs / (1000 * 60 * 60);
+            let statusEl = document.getElementById('daily-status');
             
-            const elapsed = timerState.elapsedBeforePause + (Date.now() - timerState.startTime.getTime());
-            timerDisplay.textContent = formatTime(elapsed);
+            if (todayHours < 5) {
+                statusEl.innerText = "Dusht & Paapi";
+                statusEl.style.color = "#f44336"; // Red
+            } else if (todayHours >= 5 && todayHours < 8) {
+                statusEl.innerText = "Good. Keep Going.";
+                statusEl.style.color = "#ffc107"; // Yellow
+            } else if (todayHours >= 8 && todayHours < 11) {
+                statusEl.innerText = "Very good. But need more.";
+                statusEl.style.color = "#4caf50"; // Green
+            } else {
+                statusEl.innerText = "Ranker!";
+                statusEl.style.color = "#00bcd4"; // Cyan/Diamond
+            }
         }
+
+        // --- GATE COUNTDOWN LOGIC ---
         
-        function updateCountdown() {
-            const now = new Date();
-            const diff = GATE_DATE - now;
-            
+        // WHY: Dedicated countdown function. QOL: Reminds you of the ultimate deadline every single day.
+        function updateGateCountdown() {
+            const targetDate = new Date('February 1, 2027 00:00:00').getTime();
+            const now = new Date().getTime();
+            const diff = targetDate - now;
+
             if (diff <= 0) {
-                countdownEl.textContent = 'GATE Day!';
+                document.getElementById('gate-countdown').innerText = "IT'S EXAM DAY!";
                 return;
             }
-            
+
+            // WHY: Math.floor rounding. QOL: Standardizes remaining time into readable chunks.
             const days = Math.floor(diff / (1000 * 60 * 60 * 24));
             const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
             const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-            
-            countdownEl.textContent = `${days}d ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+            document.getElementById('gate-countdown').innerText = `${days} Days, ${hours} Hours, ${minutes} Mins`;
         }
+
+        // --- QUOTE ROTATION LOGIC ---
         
-        function showQuote() {
-            const quote = quotes[currentQuoteIndex];
-            quoteTextEl.innerHTML = `<span class="text-[var(--accent)] font-medium">${quote.author}</span>, "${quote.text}"`;
-            currentQuoteIndex = (currentQuoteIndex + 1) % quotes.length;
+        // WHY: Random quote picker. QOL: Provides fresh spiritual/motivational context every few minutes so you don't go numb to a static string.
+        function rotateQuote() {
+            const randomIndex = Math.floor(Math.random() * quotes.length);
+            quoteEl.innerText = quotes[randomIndex];
         }
+
+        // --- INITIALIZATION ---
         
-        function cycleQuote() {
-            quoteContainer.classList.add('quote-fade');
-            setTimeout(() => {
-                showQuote();
-                quoteContainer.classList.remove('quote-fade');
-            }, 500);
-        }
+        // WHY: Run these immediately on page load. QOL: Ensures the dashboard is populated with accurate data the millisecond you open the tab.
+        updateGateCountdown();
+        rotateQuote();
+        updateStats();
         
-        function updateSessionInfo() {
-            if (timerState.currentSessionStart && timerState.isRunning) {
-                sessionInfo.textContent = `Started at ${formatTimeReadable(timerState.currentSessionStart)}`;
-            } else {
-                sessionInfo.textContent = '';
+        // WHY: Set intervals for background updates. QOL: Keeps the countdown and quotes fresh even if you leave the tab open for 14 hours.
+        setInterval(updateGateCountdown, 60000); // Update countdown every minute
+        setInterval(rotateQuote, 300000); // Change quote every 5 minutes
+
+        // WHY: Tab visibility listener. QOL: If the browser massively throttles JS in the background, this forces an immediate UI sync the exact moment you click back into the tab.
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                if (isRunning) updateDisplay();
+                updateStats(); // Catch up on any day rollovers
             }
-        }
-        
-        // ==========================================
-        // TIMER CONTROL FUNCTIONS
-        // ==========================================
-        
-        function startTimer() {
-            timerState.isRunning = true;
-            timerState.isPaused = false;
-            timerState.startTime = new Date();
-            timerState.elapsedBeforePause = 0;
-            timerState.currentSessionStart = new Date();
-            
-            startBtn.classList.add('hidden');
-            pauseBtn.classList.remove('hidden');
-            stopBtn.classList.remove('hidden');
-            resumeBtn.classList.add('hidden');
-            
-            timerDisplay.classList.add('timer-glow-active');
-            sessionMessage.innerHTML = '';
-            
-            saveTimerState();
-            updateSessionInfo();
-            
-            if (!timerInterval) {
-                timerInterval = setInterval(() => {
-                    updateTimerDisplay();
-                    updateStats();
-                }, 1000);
-            }
-        }
-        
-        function pauseTimer() {
-            if (!timerState.isRunning) return;
-            
-            timerState.elapsedBeforePause += Date.now() - timerState.startTime.getTime();
-            timerState.isPaused = true;
-            timerState.isRunning = false;
-            
-            pauseBtn.classList.add('hidden');
-            resumeBtn.classList.remove('hidden');
-            
-            timerDisplay.classList.remove('timer-glow-active');
-            
-            saveTimerState();
-        }
-        
-        function resumeTimer() {
-            timerState.isRunning = true;
-            timerState.isPaused = false;
-            timerState.startTime = new Date();
-            
-            resumeBtn.classList.add('hidden');
-            pauseBtn.classList.remove('hidden');
-            
-            timerDisplay.classList.add('timer-glow-active');
-            
-            saveTimerState();
-        }
-        
-        function stopTimer() {
-            if (!timerState.currentSessionStart) return;
-            
-            const endTime = new Date();
-            const duration = timerState.elapsedBeforePause + (timerState.isRunning ? (Date.now() - timerState.startTime.getTime()) : 0);
-            
-            // Save session
-            const session = {
-                start: timerState.currentSessionStart.toISOString(),
-                end: endTime.toISOString(),
-                duration: duration
-            };
-            saveSession(session);
-            
-            // Show session message
-            sessionMessage.innerHTML = `
-                <div class="session-message stat-card inline-block">
-                    <p class="text-[var(--fg)]">You studied between <span class="text-[var(--accent)] font-semibold">${formatTimeReadable(timerState.currentSessionStart)}</span> and <span class="text-[var(--accent)] font-semibold">${formatTimeReadable(endTime)}</span>.</p>
-                    <p class="text-[var(--muted)] mt-1">You studied for <span class="text-[var(--fg)] font-semibold">${formatTimeShort(duration)}</span>.</p>
-                </div>
-            `;
-            
-            // Reset state
-            timerState.isRunning = false;
-            timerState.isPaused = false;
-            timerState.startTime = null;
-            timerState.elapsedBeforePause = 0;
-            timerState.currentSessionStart = null;
-            
-            startBtn.classList.remove('hidden');
-            pauseBtn.classList.add('hidden');
-            resumeBtn.classList.add('hidden');
-            stopBtn.classList.add('hidden');
-            
-            timerDisplay.classList.remove('timer-glow-active');
-            timerDisplay.textContent = '00:00:00';
-            sessionInfo.textContent = '';
-            
-            saveTimerState();
-            updateStats();
-        }
-        
-        // ==========================================
-        // INITIALIZATION
-        // ==========================================
-        
-        function init() {
-            // Initialize DOM elements
-            countdownEl = document.getElementById('countdown');
-            timerDisplay = document.getElementById('timerDisplay');
-            sessionInfo = document.getElementById('sessionInfo');
-            sessionMessage = document.getElementById('sessionMessage');
-            startBtn = document.getElementById('startBtn');
-            pauseBtn = document.getElementById('pauseBtn');
-            resumeBtn = document.getElementById('resumeBtn');
-            stopBtn = document.getElementById('stopBtn');
-            todayTimeEl = document.getElementById('todayTime');
-            todayStatusEl = document.getElementById('todayStatus');
-            weekTimeEl = document.getElementById('weekTime');
-            monthTimeEl = document.getElementById('monthTime');
-            avgTimeEl = document.getElementById('avgTime');
-            quoteTextEl = document.getElementById('quoteText');
-            quoteContainer = document.getElementById('quoteContainer');
-            
-            // Load saved state
-            loadTimerState();
-            
-            // Setup event listeners
-            startBtn.addEventListener('click', startTimer);
-            pauseBtn.addEventListener('click', pauseTimer);
-            resumeBtn.addEventListener('click', resumeTimer);
-            stopBtn.addEventListener('click', stopTimer);
-            
-            // Keyboard shortcuts
-            document.addEventListener('keydown', (e) => {
-                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-                
-                if (e.code === 'Space') {
-                    e.preventDefault();
-                    if (!timerState.isRunning && !timerState.isPaused) {
-                        startTimer();
-                    } else if (timerState.isRunning && !timerState.isPaused) {
-                        pauseTimer();
-                    } else if (timerState.isPaused) {
-                        resumeTimer();
-                    }
-                } else if (e.code === 'Escape' && (timerState.isRunning || timerState.isPaused)) {
-                    stopTimer();
-                }
-            });
-            
-            // Restore timer state if was running
-            if (timerState.isRunning || timerState.isPaused) {
-                startBtn.classList.add('hidden');
-                
-                if (timerState.isPaused) {
-                    resumeBtn.classList.remove('hidden');
-                } else {
-                    pauseBtn.classList.remove('hidden');
-                    timerDisplay.classList.add('timer-glow-active');
-                }
-                
-                stopBtn.classList.remove('hidden');
-                updateSessionInfo();
-                
-                timerInterval = setInterval(() => {
-                    updateTimerDisplay();
-                    updateStats();
-                }, 1000);
-            }
-            
-            // Initial updates
-            updateCountdown();
-            updateStats();
-            updateTimerDisplay();
-            showQuote();
-            
-            // Start intervals
-            countdownInterval = setInterval(updateCountdown, 1000);
-            quoteInterval = setInterval(cycleQuote, 15000);
-            
-            // Handle visibility change for background tabs
-            document.addEventListener('visibilitychange', () => {
-                if (document.visibilityState === 'visible') {
-                    updateTimerDisplay();
-                    updateStats();
-                    updateCountdown();
-                }
-            });
-            
-            // Periodic state save while running
-            setInterval(() => {
-                if (timerState.isRunning || timerState.isPaused) {
-                    saveTimerState();
-                }
-            }, 5000);
-        }
-        
-        // Wait for DOM to be ready
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', init);
-        } else {
-            init();
-        }
+        });
+
     </script>
 </body>
 </html>
