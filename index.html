@@ -1,921 +1,874 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Study Timer — GATE CS & DA</title>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet"/>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    :root {
-      --bg:        #09090e;
-      --surface:   #111119;
-      --border:    #1e1e2e;
-      --gold:      #c9a84c;
-      --gold-dim:  #8a6f30;
-      --text:      #dcd9d0;
-      --muted:     #55556a;
-      --white:     #f0ede6;
-      --red:       #b85450;
-      --green:     #5a8a6a;
-    }
-
-    html, body {
-      height: 100%;
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'DM Sans', sans-serif;
-      font-weight: 300;
-    }
-
-    body {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      min-height: 100vh;
-      padding: 0 24px 60px;
-      position: relative;
-    }
-
-    /* ── subtle background grain ── */
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    /* ── GATE countdown bar ── */
-    #countdown-bar {
-      width: 100%;
-      max-width: 680px;
-      margin-top: 36px;
-      padding: 14px 24px;
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      background: var(--surface);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      position: relative;
-      z-index: 1;
-    }
-
-    #countdown-bar .label {
-      font-family: 'DM Sans', sans-serif;
-      font-size: 11px;
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
-      color: var(--muted);
-    }
-
-    #countdown-bar .days {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 13px;
-      color: var(--gold);
-      letter-spacing: 0.05em;
-    }
-
-    #countdown-bar .dot {
-      width: 3px; height: 3px;
-      border-radius: 50%;
-      background: var(--border);
-    }
-
-    /* ── main card ── */
-    #card {
-      width: 100%;
-      max-width: 680px;
-      margin-top: 20px;
-      padding: 60px 48px 52px;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      background: var(--surface);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0;
-      position: relative;
-      z-index: 1;
-    }
-
-    .page-title {
-      font-family: 'Cormorant Garamond', serif;
-      font-weight: 300;
-      font-size: 15px;
-      letter-spacing: 0.22em;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 48px;
-    }
-
-    /* ── timer display ── */
-    #timer {
-      font-family: 'Cormorant Garamond', serif;
-      font-weight: 300;
-      font-size: clamp(80px, 18vw, 130px);
-      letter-spacing: -0.01em;
-      color: var(--white);
-      line-height: 1;
-      transition: color 0.4s ease;
-      user-select: none;
-    }
-
-    #timer.running { color: var(--white); }
-    #timer.stopped { color: var(--gold); }
-
-    .timer-sub {
-      margin-top: 10px;
-      font-size: 11px;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      color: var(--muted);
-      height: 16px;
-      transition: opacity 0.3s;
-    }
-
-    /* ── divider ── */
-    .divider {
-      width: 40px;
-      height: 1px;
-      background: var(--border);
-      margin: 44px 0 40px;
-    }
-
-    /* ── buttons ── */
-    #controls {
-      display: flex;
-      gap: 14px;
-      align-items: center;
-    }
-
-    button {
-      font-family: 'DM Sans', sans-serif;
-      font-weight: 400;
-      font-size: 12px;
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
-      border: 1px solid var(--border);
-      border-radius: 3px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      padding: 14px 32px;
-      background: transparent;
-      color: var(--muted);
-    }
-
-    button:hover { border-color: var(--muted); color: var(--text); }
-
-    #btn-start {
-      border-color: var(--gold-dim);
-      color: var(--gold);
-      padding: 16px 48px;
-      font-size: 13px;
-    }
-    #btn-start:hover { background: var(--gold); color: var(--bg); border-color: var(--gold); }
-
-    #btn-stop  { color: var(--red); border-color: #4a2828; }
-    #btn-stop:hover  { background: var(--red); color: var(--white); border-color: var(--red); }
-
-    #btn-reset { color: var(--muted); }
-    #btn-reset:hover { border-color: var(--muted); }
-
-    button:disabled {
-      opacity: 0.25;
-      pointer-events: none;
-    }
-
-    /* ── output message ── */
-    #output {
-      margin-top: 36px;
-      width: 100%;
-      padding: 20px 24px;
-      border: 1px solid var(--green);
-      border-radius: 4px;
-      background: rgba(90, 138, 106, 0.07);
-      font-family: 'DM Sans', sans-serif;
-      font-size: 14px;
-      line-height: 1.7;
-      color: #8abf9a;
-      display: none;
-      text-align: center;
-      letter-spacing: 0.01em;
-    }
-
-    #output.visible { display: block; animation: fadeIn 0.5s ease; }
-
-    #output strong {
-      color: #aad4b4;
-      font-weight: 500;
-    }
-
-    /* ── quotes ── */
-    #quotes {
-      width: 100%;
-      max-width: 680px;
-      margin-top: 20px;
-      padding: 28px 32px;
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      background: var(--surface);
-      text-align: center;
-      position: relative;
-      z-index: 1;
-    }
-
-    #quote-text {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 19px;
-      font-weight: 300;
-      color: var(--text);
-      line-height: 1.6;
-      font-style: italic;
-      transition: opacity 0.5s;
-    }
-
-    #quote-author {
-      margin-top: 10px;
-      font-size: 11px;
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
-      color: var(--muted);
-      transition: opacity 0.5s;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(6px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-
-    .fade-out { opacity: 0 !important; }
-
-    /* ── stats panel ── */
-    #stats {
-      width: 100%;
-      max-width: 680px;
-      margin-top: 20px;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      background: var(--surface);
-      position: relative;
-      z-index: 1;
-      overflow: hidden;
-    }
-
-    #stats-header {
-      padding: 18px 32px 14px;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    #stats-header .s-title {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 13px;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      color: var(--muted);
-      font-weight: 300;
-    }
-
-    #today-badge {
-      font-family: 'DM Sans', sans-serif;
-      font-size: 10px;
-      font-weight: 500;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      padding: 4px 10px;
-      border-radius: 2px;
-      transition: all 0.4s ease;
-    }
-
-    #today-badge.rank-ranker  { background: rgba(201,168,76,0.15); color: var(--gold); border: 1px solid var(--gold-dim); }
-    #today-badge.rank-vgood   { background: rgba(90,138,106,0.15); color: #8abf9a;     border: 1px solid #3a6a4a; }
-    #today-badge.rank-good    { background: rgba(90,138,106,0.10); color: #6a9f7a;     border: 1px solid #2a5a3a; }
-    #today-badge.rank-paapi   { background: rgba(184,84,80,0.15);  color: var(--red);  border: 1px solid #6a2828; }
-    #today-badge.rank-none    { background: transparent; color: var(--muted);          border: 1px solid var(--border); }
-
-    #stats-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr 1fr;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .stat-cell {
-      padding: 20px 24px;
-      border-right: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .stat-cell:last-child { border-right: none; }
-
-    .stat-label {
-      font-family: 'DM Sans', sans-serif;
-      font-size: 10px;
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
-      color: var(--muted);
-    }
-
-    .stat-value {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 16px;
-      color: var(--white);
-      letter-spacing: 0.02em;
-      line-height: 1;
-    }
-
-    .stat-value.dim { color: var(--muted); font-size: 13px; }
-
-    #stats-today-row {
-      padding: 14px 32px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    #today-detail {
-      font-family: 'DM Sans', sans-serif;
-      font-size: 12px;
-      color: var(--muted);
-      letter-spacing: 0.01em;
-    }
-
-    #today-detail strong {
-      color: var(--text);
-      font-weight: 400;
-    }
-
-    @media (max-width: 540px) {
-      #stats-grid { grid-template-columns: 1fr 1fr; }
-      .stat-cell:nth-child(2) { border-right: none; }
-      .stat-cell:nth-child(3) { border-top: 1px solid var(--border); }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GATE 2027 Study Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0a0f;
+            --bg-elevated: #12121a;
+            --card: #16161f;
+            --border: #2a2a3a;
+            --fg: #e8e8ed;
+            --muted: #7a7a8a;
+            --accent: #d4a853;
+            --accent-dim: #b8923f;
+            --success: #4ade80;
+            --warning: #fbbf24;
+            --danger: #f87171;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--fg);
+            min-height: 100vh;
+            overflow: hidden;
+        }
+        
+        .font-display {
+            font-family: 'Space Grotesk', sans-serif;
+        }
+        
+        /* Subtle animated background */
+        .bg-pattern {
+            position: fixed;
+            inset: 0;
+            background: 
+                radial-gradient(ellipse 80% 50% at 50% -20%, rgba(212, 168, 83, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse 60% 40% at 80% 100%, rgba(212, 168, 83, 0.05) 0%, transparent 40%),
+                var(--bg);
+            z-index: -1;
+        }
+        
+        /* Floating particles */
+        .particle {
+            position: fixed;
+            width: 2px;
+            height: 2px;
+            background: var(--accent);
+            border-radius: 50%;
+            opacity: 0.3;
+            animation: float 20s infinite ease-in-out;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0) translateX(0); opacity: 0.2; }
+            50% { transform: translateY(-100px) translateX(30px); opacity: 0.5; }
+        }
+        
+        /* Timer glow effect */
+        .timer-glow {
+            text-shadow: 0 0 60px rgba(212, 168, 83, 0.3);
+        }
+        
+        .timer-glow-active {
+            animation: pulse-glow 2s infinite ease-in-out;
+        }
+        
+        @keyframes pulse-glow {
+            0%, 100% { text-shadow: 0 0 60px rgba(212, 168, 83, 0.3); }
+            50% { text-shadow: 0 0 80px rgba(212, 168, 83, 0.5); }
+        }
+        
+        /* Button styles */
+        .btn {
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 500;
+            padding: 12px 32px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 15px;
+            letter-spacing: 0.5px;
+        }
+        
+        .btn:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
+        
+        .btn-primary {
+            background: var(--accent);
+            color: var(--bg);
+        }
+        
+        .btn-primary:hover {
+            background: var(--accent-dim);
+            transform: translateY(-1px);
+        }
+        
+        .btn-secondary {
+            background: var(--card);
+            color: var(--fg);
+            border: 1px solid var(--border);
+        }
+        
+        .btn-secondary:hover {
+            background: var(--bg-elevated);
+            border-color: var(--accent);
+        }
+        
+        .btn-danger {
+            background: transparent;
+            color: var(--danger);
+            border: 1px solid var(--danger);
+        }
+        
+        .btn-danger:hover {
+            background: rgba(248, 113, 113, 0.1);
+        }
+        
+        /* Card styles */
+        .stat-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            border-color: rgba(212, 168, 83, 0.3);
+        }
+        
+        /* Quote animation */
+        .quote-container {
+            opacity: 1;
+            transition: opacity 0.5s ease;
+        }
+        
+        .quote-fade {
+            opacity: 0;
+        }
+        
+        /* Status badge */
+        .status-badge {
+            display: inline-block;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+        
+        /* Session message */
+        .session-message {
+            animation: slideUp 0.4s ease;
+        }
+        
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* Countdown flip animation */
+        .countdown-unit {
+            position: relative;
+        }
+        
+        /* Scrollbar hidden but functional */
+        ::-webkit-scrollbar {
+            width: 0;
+            height: 0;
+        }
+        
+        /* Reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+            .particle,
+            .timer-glow-active,
+            .quote-container,
+            .session-message {
+                animation: none !important;
+                transition: none !important;
+            }
+        }
+    </style>
 </head>
 <body>
-
-  <!-- GATE Countdown -->
-  <div id="countdown-bar">
-    <span class="label">GATE 2027 CS &amp; DA</span>
-    <span class="dot"></span>
-    <span class="days" id="gate-days">— days remaining</span>
-    <span class="dot"></span>
-    <span class="label">Stay the course</span>
-  </div>
-
-  <!-- Main Card -->
-  <div id="card">
-    <p class="page-title">Study Timer</p>
-
-    <div id="timer">00:00:00</div>
-    <div class="timer-sub" id="timer-sub"></div>
-
-    <div class="divider"></div>
-
-    <div id="controls">
-      <button id="btn-stop"  disabled>Stop</button>
-      <button id="btn-start">Start</button>
-      <button id="btn-reset" disabled>Reset</button>
+    <div class="bg-pattern"></div>
+    
+    <!-- Floating particles -->
+    <div class="particle" style="left: 10%; top: 20%;"></div>
+    <div class="particle" style="left: 85%; top: 30%; animation-delay: -5s;"></div>
+    <div class="particle" style="left: 25%; top: 70%; animation-delay: -10s;"></div>
+    <div class="particle" style="left: 75%; top: 80%; animation-delay: -15s;"></div>
+    <div class="particle" style="left: 50%; top: 10%; animation-delay: -7s;"></div>
+    
+    <div class="h-screen flex flex-col p-4 md:p-6 lg:p-8 max-w-7xl mx-auto">
+        
+        <!-- Header: Countdown -->
+        <header class="flex items-center justify-between mb-6">
+            <div>
+                <h1 class="font-display text-lg md:text-xl font-semibold text-[var(--fg)]">GATE 2027</h1>
+                <p class="text-[var(--muted)] text-sm">CS & DA</p>
+            </div>
+            <div class="stat-card flex items-center gap-4">
+                <span class="text-[var(--muted)] text-sm hidden sm:inline">Countdown</span>
+                <div id="countdown" class="font-display text-xl md:text-2xl font-semibold text-[var(--accent)]">
+                    --:--:--:--
+                </div>
+            </div>
+        </header>
+        
+        <!-- Main Content -->
+        <main class="flex-1 flex flex-col lg:flex-row gap-6 min-h-0">
+            
+            <!-- Timer Section -->
+            <section class="flex-1 flex flex-col items-center justify-center">
+                <div class="text-center">
+                    <!-- Session Info -->
+                    <div id="sessionInfo" class="h-6 mb-4 text-[var(--muted)] text-sm"></div>
+                    
+                    <!-- Main Timer -->
+                    <div id="timerDisplay" class="font-display text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-bold text-[var(--fg)] timer-glow tracking-tight">
+                        00:00:00
+                    </div>
+                    
+                    <!-- Session End Message -->
+                    <div id="sessionMessage" class="mt-6 h-16"></div>
+                    
+                    <!-- Controls -->
+                    <div id="controls" class="flex items-center justify-center gap-3 mt-8">
+                        <button id="startBtn" class="btn btn-primary" aria-label="Start timer">Start</button>
+                        <button id="pauseBtn" class="btn btn-secondary hidden" aria-label="Pause timer">Pause</button>
+                        <button id="resumeBtn" class="btn btn-primary hidden" aria-label="Resume timer">Resume</button>
+                        <button id="stopBtn" class="btn btn-danger hidden" aria-label="Stop timer">Stop</button>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Stats Section -->
+            <aside class="lg:w-80 flex flex-col gap-4">
+                
+                <!-- Today's Status -->
+                <div class="stat-card">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-[var(--muted)] text-sm font-medium">Today</span>
+                        <span id="todayStatus" class="status-badge bg-[var(--card)] text-[var(--muted)] border border-[var(--border)]">
+                            Start Studying
+                        </span>
+                    </div>
+                    <div id="todayTime" class="font-display text-3xl font-bold text-[var(--fg)]">0h 0m</div>
+                </div>
+                
+                <!-- Weekly Stats -->
+                <div class="stat-card">
+                    <span class="text-[var(--muted)] text-sm font-medium">This Week</span>
+                    <div id="weekTime" class="font-display text-2xl font-semibold text-[var(--fg)] mt-1">0h 0m</div>
+                </div>
+                
+                <!-- Monthly Stats -->
+                <div class="stat-card">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-[var(--muted)] text-sm font-medium">This Month</span>
+                    </div>
+                    <div id="monthTime" class="font-display text-2xl font-semibold text-[var(--fg)]">0h 0m</div>
+                    <div class="mt-3 pt-3 border-t border-[var(--border)]">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[var(--muted)] text-xs">Daily Average</span>
+                            <span id="avgTime" class="text-[var(--fg)] text-sm font-medium">0h 0m</span>
+                        </div>
+                    </div>
+                </div>
+                
+            </aside>
+        </main>
+        
+        <!-- Quote Section -->
+        <footer class="mt-6 text-center">
+            <div id="quoteContainer" class="quote-container">
+                <p id="quoteText" class="text-[var(--muted)] text-sm md:text-base italic max-w-2xl mx-auto leading-relaxed"></p>
+            </div>
+        </footer>
+        
     </div>
-
-    <div id="output"></div>
-  </div>
-
-
-  <!-- Stats Panel -->
-  <div id="stats">
-    <div id="stats-header">
-      <span class="s-title">Study Log</span>
-      <span id="today-badge" class="rank-none">—</span>
-    </div>
-    <div id="stats-grid">
-      <div class="stat-cell">
-        <span class="stat-label">Today</span>
-        <span class="stat-value dim" id="stat-today">0h 0m</span>
-      </div>
-      <div class="stat-cell">
-        <span class="stat-label">This Week</span>
-        <span class="stat-value dim" id="stat-week">0h 0m</span>
-      </div>
-      <div class="stat-cell">
-        <span class="stat-label">This Month</span>
-        <span class="stat-value dim" id="stat-month">0h 0m</span>
-      </div>
-      <div class="stat-cell">
-        <span class="stat-label">Daily Avg</span>
-        <span class="stat-value dim" id="stat-avg">—</span>
-      </div>
-    </div>
-    <div id="stats-today-row">
-      <span id="today-detail">No sessions logged today yet.</span>
-    </div>
-  </div>
-
-  <!-- Quote -->
-  <div id="quotes">
-    <div id="quote-text"></div>
-    <div id="quote-author"></div>
-  </div>
-
-<script>
-  /* ── GATE countdown ── */
-  (function() {
-    const gateDate = new Date('2027-02-06T09:00:00+05:30');
-    const el = document.getElementById('gate-days');
-    let gateInterval; // declared here so updateCountdown can reach it
-
-    function updateCountdown() {
-      const diff = gateDate - Date.now();
-      if (diff <= 0) {
-        el.textContent = 'GATE day is here!';
-        clearInterval(gateInterval); // stop — no point firing forever after goal is reached
-        return;
-      }
-      const days  = Math.floor(diff / (1000 * 60 * 60 * 24));
-      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      const mins  = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-      el.textContent = `${days}d ${hours}h ${mins}m remaining`;
-    }
-    updateCountdown();
-    gateInterval = setInterval(updateCountdown, 1000); // assigned after declaration so updateCountdown can clear it
-  })();
-
-  /* ── Timer logic ── */
-  const STORAGE_KEY = 'gate-timer:timerState';
-
-  let interval       = null;
-  let elapsed        = 0;      // total seconds accumulated across all pauses
-  let elapsedAtPause = 0;      // snapshot of elapsed the moment we paused
-  let runStartedAt   = null;   // Date.now() value when the current run segment began
-  let sessionStart   = null;   // Date object: very first Start of this session
-  let running        = false;
-
-  const timerEl  = document.getElementById('timer');
-  const subEl    = document.getElementById('timer-sub');
-  const outputEl = document.getElementById('output');
-  const btnStart = document.getElementById('btn-start');
-  const btnStop  = document.getElementById('btn-stop');
-  const btnReset = document.getElementById('btn-reset');
-
-  /* ── helpers ── */
-  function pad(n) { return String(n).padStart(2, '0'); }
-
-  function formatDisplay(s) {
-    const h = Math.floor(s / 3600);
-    const m = Math.floor((s % 3600) / 60);
-    return `${pad(h)}:${pad(m)}:${pad(s % 60)}`;
-  }
-
-  function formatTime12(date) {
-    let h = date.getHours(), m = date.getMinutes();
-    const ampm = h >= 12 ? 'PM' : 'AM';
-    h = h % 12 || 12;
-    return `${h}:${pad(m)} ${ampm}`;
-  }
-
-  function formatDuration(s) {
-    if (s < 60)   return `${s} second${s !== 1 ? 's' : ''}`;
-    if (s < 3600) {
-      const m = Math.floor(s / 60), sec = s % 60;
-      return sec ? `${m} min ${sec} sec` : `${m} minute${m !== 1 ? 's' : ''}`;
-    }
-    const h   = Math.floor(s / 3600);
-    const m   = Math.floor((s % 3600) / 60);
-    const sec = s % 60;
-    let str = `${h} hour${h !== 1 ? 's' : ''}`;
-    if (m)   str += ` ${m} min`;
-    if (sec) str += ` ${sec} sec`;
-    return str;
-  }
-
-  /* ── localStorage persistence ── */
-  // BUG FIX: Previously, a page refresh or accidental tab close wiped the
-  // entire session. Now we save state on every tick so it survives.
-
-  function saveState() {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        elapsedAtPause,
-        runStartedAt,          // null when paused, a timestamp when running
-        sessionStart: sessionStart ? sessionStart.getTime() : null,
-        running
-      }));
-    } catch (e) { /* localStorage unavailable (private mode etc.) — degrade gracefully */ }
-  }
-
-  function clearState() {
-    try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
-  }
-
-  function restoreState() {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return;
-      const s = JSON.parse(raw);
-
-      // Validate — must be a non-negative finite number, else treat as 0
-      elapsedAtPause = (typeof s.elapsedAtPause === 'number' && isFinite(s.elapsedAtPause) && s.elapsedAtPause >= 0)
-        ? s.elapsedAtPause : 0;
-      sessionStart   = s.sessionStart ? new Date(s.sessionStart) : null;
-
-      const MAX_UNATTENDED_MS = 4 * 60 * 60 * 1000; // 4 hours
-      const timeSinceLastSave  = Date.now() - (s.runStartedAt || 0);
-
-      if (s.running && s.runStartedAt && timeSinceLastSave < MAX_UNATTENDED_MS) {
-        // The timer was running when the page closed/refreshed and it was
-        // recent enough to trust — resume as if it never stopped.
-        runStartedAt = s.runStartedAt;
-        startRunningUI();
-      } else if (s.running && s.runStartedAt) {
-        // Timer was "running" in storage but runStartedAt is very old (e.g.
-        // browser was closed overnight). Treat as paused at last known elapsed.
-        // We DO log the elapsed time — the user genuinely studied those hours
-        // before the crash. Without this, the time shows on screen but is
-        // silently lost from all stats (Today / Week / Month).
-        elapsed = elapsedAtPause;
-        timerEl.textContent = formatDisplay(elapsed);
-        timerEl.classList.add('stopped');
-        subEl.textContent = '';
-        outputEl.innerHTML =
-          `Session restored (paused). You had studied for <strong>${formatDuration(elapsed)}</strong>. Resume when ready. 🎯`;
-        outputEl.classList.add('visible');
-        btnStart.disabled = false;
-        btnStop.disabled  = true;
-        btnReset.disabled = false;
-        // Fix up saved state so it reflects the paused reality
-        runStartedAt = null;
-        saveState();
-        // Log the pre-crash segment so stats are not robbed of real study time.
-        // elapsedAtPause here equals elapsed (no new segment yet), which is
-        // exactly the time the user studied before the browser died.
-        logSession(elapsed);
-      } else if (elapsedAtPause > 0 && sessionStart) {
-        // Timer was paused — restore the frozen display.
-        elapsed = elapsedAtPause;
-        timerEl.textContent = formatDisplay(elapsed);
-        timerEl.classList.add('stopped');
-        subEl.textContent = '';
-        const dur = formatDuration(elapsed);
-        outputEl.innerHTML =
-          `Session restored. You have studied for <strong>${dur}</strong> so far. Keep going! 🎯`;
-        outputEl.classList.add('visible');
-        btnStart.disabled = false;
-        btnStop.disabled  = true;
-        btnReset.disabled = false;
-      }
-    } catch (e) { clearState(); }
-  }
-
-  /* ── flush state on tab close / refresh ── */
-  // We do NOT block navigation. Since localStorage saves on every tick, the
-  // session survives a refresh perfectly. Blocking with e.preventDefault()
-  // would show "Changes may not be saved" — an outright lie that causes panic.
-  // Instead just flush saveState() once more so the stored snapshot is as
-  // fresh as possible (rather than relying on the last tick up to 200ms ago).
-  window.addEventListener('beforeunload', () => {
-    if (running) saveState();
-  });
-
-  /* ── core timer tick ── */
-  let _lastSavedElapsed = -1;
-  function tick() {
-    // Math.max(0, ...) guards against a backward system clock adjustment
-    // that could produce a negative value and break the display ("00:00:-1").
-    const newElapsed = Math.max(0, elapsedAtPause + Math.floor((Date.now() - runStartedAt) / 1000));
-    timerEl.textContent = formatDisplay(newElapsed);
-    elapsed = newElapsed;
-    // Only write to localStorage when the second value actually changes.
-    // The interval fires every 200ms for visual smoothness, but elapsed only
-    // increments once per second — no point doing 5 identical writes per second.
-    if (elapsed !== _lastSavedElapsed) {
-      _lastSavedElapsed = elapsed;
-      saveState();
-    }
-  }
-
-  function startRunningUI() {
-    running = true;
-    timerEl.classList.add('running');
-    timerEl.classList.remove('stopped');
-    subEl.textContent = `started at ${formatTime12(sessionStart)}`;
-    outputEl.classList.remove('visible');
-    btnStart.disabled = true;
-    btnStop.disabled  = false;
-    btnReset.disabled = true;
-
-    // 200ms interval: feels live, and uses real wall-clock math so
-    // browser throttling of background tabs can never make it drift.
-    interval = setInterval(tick, 200);
-    tick(); // immediate first tick so display updates at once
-  }
-
-  /* ── button handlers ── */
-  btnStart.addEventListener('click', () => {
-    if (running) return;
-    if (!sessionStart) sessionStart = new Date();
-    runStartedAt = Date.now();
-    // No saveState() here — startRunningUI() calls tick() immediately,
-    // which saves the correct state with running:true already set.
-    startRunningUI();
-  });
-
-  btnStop.addEventListener('click', () => {
-    if (!running) return;
-    clearInterval(interval);
-    interval = null;
-    running = false;
-
-    // Freeze elapsed using wall-clock so the final value is exact.
-    // Math.max(0,...) guards against a backward system-clock jump at stop time.
-    const prevElapsedAtPause = elapsedAtPause;
-    elapsed        = Math.max(0, elapsedAtPause + Math.floor((Date.now() - runStartedAt) / 1000));
-    const segmentSecs = elapsed - prevElapsedAtPause; // ONLY the time since last Start
-    elapsedAtPause = elapsed;
-    runStartedAt   = null;
-
-    timerEl.classList.remove('running');
-    timerEl.classList.add('stopped');
-    subEl.textContent = '';
-
-    const endTime = new Date();
-    outputEl.innerHTML =
-      `You studied between <strong>${formatTime12(sessionStart)}</strong> and <strong>${formatTime12(endTime)}</strong>.<br>
-       You studied for <strong>${formatDuration(elapsed)}</strong>. Every minute counts. Keep going! 🎯`;
-    outputEl.classList.add('visible');
-
-    btnStart.disabled = false;
-    btnStop.disabled  = true;
-    btnReset.disabled = false;
-
-    logSession(segmentSecs); // record only this segment (not cumulative) in the log
-    saveState();
-  });
-
-  btnReset.addEventListener('click', () => {
-    clearInterval(interval);
-    interval       = null;
-    running        = false;
-    elapsed        = 0;
-    elapsedAtPause = 0;
-    runStartedAt   = null;
-    sessionStart   = null;
-
-    timerEl.textContent = '00:00:00';
-    timerEl.classList.remove('running', 'stopped');
-    subEl.textContent = '';
-    outputEl.classList.remove('visible');
-
-    btnStart.disabled = false;
-    btnStop.disabled  = true;
-    btnReset.disabled = true;
-
-    clearState(); // wipe saved state on explicit reset
-    _lastSavedElapsed = -1; // ensure first tick of next session always saves
-  });
-
-  // Restore any previously saved session on page load
-  restoreState();
-
-
-  /* ══════════════════════════════════════════════
-     SESSION LOG  — persists across all sessions
-     Each entry: { date: 'YYYY-MM-DD', secs: number }
-  ══════════════════════════════════════════════ */
-  const LOG_KEY = 'gate-timer:sessionLog';
-
-  function todayStr() {
-    const d = new Date();
-    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-  }
-
-  function loadLog() {
-    try {
-      const raw = localStorage.getItem(LOG_KEY);
-      if (!raw) return [];
-      const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch(e) { return []; }
-  }
-
-  function saveLog(log) {
-    try { localStorage.setItem(LOG_KEY, JSON.stringify(log)); } catch(e) {}
-  }
-
-  function logSession(secs) {
-    if (secs < 5) return; // ignore accidental sub-5-second stops
-    const log = loadLog();
-    log.push({ date: todayStr(), secs });
-    saveLog(log);
-    updateStats();
-  }
-
-  /* ── stats computation ── */
-  function getMondayStr(d) {
-    const day = d.getDay(); // 0=Sun
-    const diff = (day === 0 ? -6 : 1 - day);
-    const mon = new Date(d);
-    mon.setDate(d.getDate() + diff);
-    return `${mon.getFullYear()}-${pad(mon.getMonth()+1)}-${pad(mon.getDate())}`;
-  }
-
-  function computeStats(log) {
-    const today = todayStr();
-    const now   = new Date();
-    const monthPfx = `${now.getFullYear()}-${pad(now.getMonth()+1)}`;
-    const weekMon  = getMondayStr(now);
-
-    let todaySecs = 0, weekSecs = 0, monthSecs = 0;
-    const dayTotals = {}; // date → secs, for average
-
-    for (const entry of log) {
-      if (!entry || typeof entry.secs !== 'number') continue;
-      const s = entry.secs;
-      if (entry.date === today)             todaySecs  += s;
-      if (entry.date >= weekMon)            weekSecs   += s;
-      if (entry.date.startsWith(monthPfx)) monthSecs  += s;
-      dayTotals[entry.date] = (dayTotals[entry.date] || 0) + s;
-    }
-
-    const daysWithStudy = Object.keys(dayTotals).length;
-    const allSecs = Object.values(dayTotals).reduce((a, b) => a + b, 0);
-    const avgSecs = daysWithStudy > 0 ? Math.round(allSecs / daysWithStudy) : 0;
-
-    return { todaySecs, weekSecs, monthSecs, avgSecs, daysWithStudy };
-  }
-
-  function formatHM(secs) {
-    if (secs === 0) return '0h 0m';
-    const h = Math.floor(secs / 3600);
-    const m = Math.floor((secs % 3600) / 60);
-    if (h === 0) return `${m}m`;
-    return m > 0 ? `${h}h ${m}m` : `${h}h`;
-  }
-
-  function getRating(todaySecs) {
-    const h = todaySecs / 3600;
-    if (h >= 13) return { cls: 'rank-ranker', label: 'Ranker 🏆' };
-    if (h >= 10) return { cls: 'rank-vgood',  label: 'Very Good ⭐' };
-    if (h >= 8)  return { cls: 'rank-good',   label: 'Good ✅' };
-    if (h > 0)   return { cls: 'rank-paapi',  label: 'Adharmi. Paapi. Ahankari. Dusht. Narak-gaami. 🔥' };
-    return       { cls: 'rank-none',  label: '—' };
-  }
-
-  function updateStats() {
-    const log  = loadLog();
-    const s    = computeStats(log);
-    const rate = getRating(s.todaySecs);
-
-    document.getElementById('stat-today').textContent = formatHM(s.todaySecs);
-    document.getElementById('stat-week').textContent  = formatHM(s.weekSecs);
-    document.getElementById('stat-month').textContent = formatHM(s.monthSecs);
-    document.getElementById('stat-avg').textContent   = s.daysWithStudy > 0 ? formatHM(s.avgSecs) : '—';
-
-    // colour stat values — remove dim when non-zero
-    ['stat-today','stat-week','stat-month'].forEach(id => {
-      const el = document.getElementById(id);
-      el.classList.toggle('dim', el.textContent === '0h 0m');
-    });
-    // stat-avg is dim when '—', bright when it has a real value
-    const avgEl = document.getElementById('stat-avg');
-    avgEl.classList.toggle('dim', avgEl.textContent === '—');
-
-    const badge = document.getElementById('today-badge');
-    badge.className = rate.cls; // rate.cls is the only class needed; #today-badge is already the ID
-    badge.textContent = rate.label;
-
-    // bottom detail row
-    const detail = document.getElementById('today-detail');
-    if (s.todaySecs === 0) {
-      detail.innerHTML = 'No sessions logged today yet.';
-    } else {
-      const sessionsToday = log.filter(e => e.date === todayStr()).length;
-      detail.innerHTML =
-        `<strong>${sessionsToday}</strong> session${sessionsToday !== 1 ? 's' : ''} today &nbsp;·&nbsp; ` +
-        `<strong>${formatHM(s.todaySecs)}</strong> total &nbsp;·&nbsp; ` +
-        `<strong>${s.daysWithStudy}</strong> day${s.daysWithStudy !== 1 ? 's' : ''} studied all-time`;
-    }
-  }
-
-  // Run once on page load to populate stats from stored history
-  updateStats();
-
-  /* ── Quotes ── */
-  const quotes = [
-    { text: "Sukh ho ya dukh, ek hi vichaar — Ladli Ju ki kripa hai.", author: "Gurudev" },
-    { text: "Shan shan mein kripa hi kripa hai.", author: "Gurudev" },
-    { text: "Yugal Sarkar ki bahut kripa hai — bas yahi yaad rakho.", author: "Gurudev" },
-    { text: "Bhajan Shri Ji ke liye, Shri Ji ke dwara hi hoga.", author: "Gurudev" },
-    { text: "Sadhan bhi priyalal, sadhya bhi priyalal.", author: "Gurudev" },
-    { text: "Sharanagati matlab — saari bhar unki, teri koi nahi.", author: "Gurudev" },
-    { text: "Nirantar naam japa — Radha Radha... yahi tera kaam hai.", author: "Gurudev" },
-    { text: "Chinta karna matlab Radha Rani par vishwas nahi karna.", author: "Gurudev" },
-    { text: "Tera man, tera sharir — sab kuch unka ho gaya hai.", author: "Gurudev" },
-    { text: "Ab tu unka ho gaya hai, toh saari bhar unki hai.", author: "Gurudev" },
-    { text: "Vikaar aaye toh rona mat — sirf bolna, Naath app dekhlo.", author: "Gurudev" },
-    { text: "Vishwas kar, chinta mat kar — bas itna kaafi hai.", author: "Gurudev" },
-    { text: "Ro do bhai, par bolna — Naath app dekhlo, nischint raho.", author: "Gurudev" },
-    { text: "Dosho ki chinta nahi — unke saamne aao, woh dekh lenge.", author: "Gurudev" },
-    { text: "Gurudev ne sharanagati di hai — ab teri zimmedaari unki hai.", author: "Gurudev" },
-    { text: "Tera bhaar mujhe de de — tu khali ho ja.", author: "Radha Rani" },
-    { text: "Mera naam le — bas itna hi tera kaam hai.", author: "Radha Rani" },
-    { text: "Tu kuch nahi kar sakta, main sab kar sakti hoon.", author: "Radha Rani" },
-    { text: "Tera jeevan mera hai — main hi chalaaungi.", author: "Radha Rani" },
-    { text: "Teri samarthya nahi hai, meri hai — is fark ko samajh le.", author: "Radha Rani" },
-    { text: "Tu mera hai — toh teri chinta bhi meri hai.", author: "Radha Rani" },
-    { text: "Tujhe meri yaad chahiye, mujhe teri — yahi rishta hai.", author: "Radha Rani" },
-    { text: "Har pal meri kripa hai — tu dekh nahi raha, main hoon yahan.", author: "Radha Rani" },
-    { text: "Bhajan bhi main karaaungi, tu bas aane de mujhe.", author: "Radha Rani" },
-    { text: "Tere dosh tere nahi — la, mujhe de de.", author: "Radha Rani" },
-    { text: "Tu ghabra mat — jo nahi kar sakta, woh main karti hoon.", author: "Radha Rani" },
-    { text: "Ek second bhi meri kripa ke bina nahi guzra tere liye.", author: "Radha Rani" },
-    { text: "Teri mehnat bhi meri, tera result bhi mera.", author: "Radha Rani" },
-    { text: "Naam le mera — baki main sambhal lungi.", author: "Radha Rani" },
-    { text: "Tu shunya hai, main poorna hoon — mil ja mujhse.", author: "Radha Rani" },
-    { text: "Tera dil dukhta hai? La, mujhe dikha — main dekhti hoon.", author: "Radha Rani" },
-    { text: "Tujhe toppers list mein main le jaaungi — tu vishwas rakh.", author: "Radha Rani" },
-    { text: "Teri neend, teri padhai, tera waqt — sab mera hai.", author: "Radha Rani" },
-    { text: "Jo teri samajh se bahar hai, woh meri pakad mein hai.", author: "Radha Rani" },
-    { text: "Tu roz aaja mere paas — main roz nayi shakti dungi.", author: "Radha Rani" },
-    { text: "Teri koshish meri hai — main ise vyarth nahi jaane dungi.", author: "Radha Rani" },
-    { text: "Har quiz, har session — main hoon tere saath.", author: "Radha Rani" },
-    { text: "Tujhe sirf yaad rakhna hai mujhe — baki sab mera kaam hai.", author: "Radha Rani" },
-    { text: "Dard mein bhi meri kripa hai — aankhein khol ke dekh.", author: "Radha Rani" },
-    { text: "Tu akela nahi hai — main hoon, hamesha hoon.", author: "Radha Rani" },
-    { text: "Teri kamzori meri taaqat mein sama jaati hai.", author: "Radha Rani" },
-    { text: "Agar tu shunya bane, main poora bhar dungi.", author: "Radha Rani" },
-    { text: "Naam jap mera — yahi tera sabse bada kaam hai.", author: "Radha Rani" },
-    { text: "Tu strategy mat bana — main raah dikhaaungi.", author: "Radha Rani" },
-    { text: "Mujhme samarthya nahi — Shri Ji hi kuch kar sakti hain.", author: "Shriyash" },
-    { text: "Ye jeevan mera nahi — Radha Rani ka hai.", author: "Shriyash" },
-    { text: "Ek second aur guzra — abhi bhi unki hi kripa thi.", author: "Shriyash" },
-    { text: "Mujhe bas unki yaad chahiye, aur kuch nahi.", author: "Shriyash" },
-    { text: "Mein apne se kuch nahi kar sakta — ye sach hai.", author: "Shriyash" },
-    { text: "Apki kripa se jeevan chalega — meri taaqat se nahi.", author: "Shriyash" },
-    { text: "App hi mere sab kuch hain — is baat ko bhoolna nahi.", author: "Shriyash" },
-    { text: "Jo main nahi kar sakta, Shri Ji kar sakti hain.", author: "Shriyash" },
-    { text: "Mera dosh hai — par unhe de diya, ab chinta nahi.", author: "Shriyash" },
-    { text: "Sir ka sapna poora karna mere bas mein nahi — Shri Ji ke bas mein hai.", author: "Shriyash" },
-    { text: "Mein zero hoon — Shri Ji number one hain.", author: "Shriyash" },
-    { text: "Har dukh mein ek hi baat — Ladli Ju ki badi kripa hai.", author: "Shriyash" },
-    { text: "Chinta karna matlab unpar shak karna — nahi karna.", author: "Shriyash" },
-    { text: "Vikaar aaya — seedha unke paas chala jaata hoon.", author: "Shriyash" },
-    { text: "Naath app dekhlo — itna bolna kaafi hai, rona bhi theek hai.", author: "Shriyash" },
-    { text: "Shan shan mein kripa hai — mujhe sirf dekhna hai.", author: "Shriyash" },
-    { text: "Unki sharanagati mein hoon — toh bhar unhi ki hai.", author: "Shriyash" },
-    { text: "Padhai bhi unki, rank bhi unka — mein bas nimit hoon.", author: "Shriyash" },
-    { text: "Unpar bharosa hai — toh mehnat mein darna kaisa.", author: "Shriyash" },
-    { text: "Sadhan bhi unka, sadhya bhi unka — main beech mein kaun?", author: "Shriyash" },
-    { text: "Ek naam — Radha — itna hi kaafi hai mere liye.", author: "Shriyash" },
-    { text: "Jo main nahi sambhal sakta, woh unka kaam hai.", author: "Shriyash" },
-    { text: "Mein weak hoon — isliye Shri Ji mere liye perfect hain.", author: "Shriyash" },
-    { text: "Roz unka naam lena — yahi meri sabse badi koshish hai.", author: "Shriyash" },
-    { text: "Agar main toppers list mein hoon — toh woh Shri Ji hain, main nahi.", author: "Shriyash" },
-    { text: "Unki nirmal yash — iska dhyaan rakhna meri pehli duty hai.", author: "Shriyash" },
-    { text: "Jo nahi hota mujhse — woh Shri Ji se hota hai.", author: "Shriyash" },
-    { text: "Hard-work meri taaqat nahi — Shri Ji ki den hai.", author: "Shriyash" },
-    { text: "Gurudev ne raah dikhaai, Shri Ji raah hain — main sirf chalun.", author: "Shriyash" },
-    { text: "Mein kuch bhi nahi — Shri Ji sab kuch hain.", author: "Shriyash" },
-    { text: "Unpe chhodna weakness nahi — sabse badi samajhdaari hai.", author: "Shriyash" },
-    { text: "Mera best bhi unki kripa hai — apna nahi keh sakta.", author: "Shriyash" },
-    { text: "Unka naam lena — yahi meri consistency hai.", author: "Shriyash" },
-    { text: "Agar main kuch bhi achieve karun — Shri Ji ne kiya, main nahi.", author: "Shriyash" },
-    { text: "Ghabrana nahi — Shri Ji hain na.", author: "Shriyash" },
-    { text: "Unke bina ek pal bhi theek se nahi guzarta.", author: "Shriyash" },
-    { text: "Unka naam meri sabse badi tayyaari hai.", author: "Shriyash" },
-    { text: "Apni kamzori dekhta hoon toh — unki zaroorat aur zyada lagti hai.", author: "Shriyash" },
-  ];
-
-  let currentQuoteIndex = Math.floor(Math.random() * quotes.length);
-
-  function showQuote(index) {
-    const qText   = document.getElementById('quote-text');
-    const qAuthor = document.getElementById('quote-author');
-    qText.classList.add('fade-out');
-    qAuthor.classList.add('fade-out');
-    setTimeout(() => {
-      qText.textContent   = `"${quotes[index].text}"`;
-      qAuthor.textContent = `— ${quotes[index].author}`;
-      qText.classList.remove('fade-out');
-      qAuthor.classList.remove('fade-out');
-    }, 500);
-  }
-
-  showQuote(currentQuoteIndex);
-
-  // BUG FIX: Previously the interval ID was thrown away, making it
-  // impossible to ever stop. Now stored so it can be cleared if needed.
-  const quoteInterval = setInterval(() => {
-    currentQuoteIndex = (currentQuoteIndex + 1) % quotes.length;
-    showQuote(currentQuoteIndex);
-  }, 12000);
-</script>
+    
+    <script>
+        // ==========================================
+        // DATA & STATE INITIALIZATION
+        // ==========================================
+        
+        const GATE_DATE = new Date('2027-02-01T09:00:00+05:30');
+        
+        const quotes = [
+            { author: "Gurudev", text: "Sukh ho ya dukh, ek hi vichaar — Ladli Ju ki kripa hai." },
+            { author: "Gurudev", text: "Shan shan mein kripa hi kripa hai." },
+            { author: "Gurudev", text: "Yugal Sarkar ki bahut kripa hai — bas yahi yaad rakho." },
+            { author: "Gurudev", text: "Bhajan Shri Ji ke liye, Shri Ji ke dwara hi hoga." },
+            { author: "Gurudev", text: "Sadhan bhi priyalal, sadhya bhi priyalal." },
+            { author: "Gurudev", text: "Sharanagati matlab — saari bhar unki, teri koi nahi." },
+            { author: "Gurudev", text: "Nirantar naam japa — Radha Radha... yahi tera kaam hai." },
+            { author: "Gurudev", text: "Chinta karna matlab Radha Rani par vishwas nahi karna." },
+            { author: "Gurudev", text: "Tera man, tera sharir — sab kuch unka ho gaya hai." },
+            { author: "Gurudev", text: "Ab tu unka ho gaya hai, toh saari bhar unki hai." },
+            { author: "Gurudev", text: "Vikaar aaye toh rona mat — sirf bolna, Naath app dekhlo." },
+            { author: "Gurudev", text: "Bemani mat karna — unki sharanagati mein manmani nahi chalti." },
+            { author: "Gurudev", text: "Tere bhaav, aacharan, vritti — inki chinta unhe hai, tujhe nahi." },
+            { author: "Gurudev", text: "Unki nirmal yash ka kalank mat ban jaana." },
+            { author: "Gurudev", text: "Vishwas kar, chinta mat kar — bas itna kaafi hai." },
+            { author: "Gurudev", text: "Hey Naath, aaj se saara bhaar apka — ab chinta khatam." },
+            { author: "Gurudev", text: "Ro do bhai, par bolna — Naath app dekhlo, nischint raho." },
+            { author: "Gurudev", text: "Dosho ki chinta nahi — unke saamne aao, woh dekh lenge." },
+            { author: "Gurudev", text: "Mera sharan hokar chinta karta hai? Bilkul nahi karna." },
+            { author: "Gurudev", text: "Gurudev ne sharanagati di hai — ab teri zimmedaari unki hai." },
+            { author: "Radha Rani", text: "Tera bhaar mujhe de de — tu khali ho ja." },
+            { author: "Radha Rani", text: "Mera naam le — bas itna hi tera kaam hai." },
+            { author: "Radha Rani", text: "Tu kuch nahi kar sakta, main sab kar sakti hoon." },
+            { author: "Radha Rani", text: "Tera jeevan mera hai — main hi chalaaungi." },
+            { author: "Radha Rani", text: "Teri samarthya nahi hai, meri hai — is fark ko samajh le." },
+            { author: "Radha Rani", text: "Tu mera hai — toh teri chinta bhi meri hai." },
+            { author: "Radha Rani", text: "Tujhe meri yaad chahiye, mujhe teri — yahi rishta hai." },
+            { author: "Radha Rani", text: "Har pal meri kripa hai — tu dekh nahi raha, main hoon yahan." },
+            { author: "Radha Rani", text: "Bhajan bhi main karaaungi, tu bas aane de mujhe." },
+            { author: "Radha Rani", text: "Tere dosh tere nahi — la, mujhe de de." },
+            { author: "Radha Rani", text: "Tu ghabra mat — jo nahi kar sakta, woh main karti hoon." },
+            { author: "Radha Rani", text: "Ek second bhi meri kripa ke bina nahi guzra tere liye." },
+            { author: "Radha Rani", text: "Teri mehnat bhi meri, tera result bhi mera." },
+            { author: "Radha Rani", text: "Naam le mera — baki main sambhal lungi." },
+            { author: "Radha Rani", text: "Tu shunya hai, main poorna hoon — mil ja mujhse." },
+            { author: "Radha Rani", text: "Tera dil dukhta hai? La, mujhe dikha — main dekhti hoon." },
+            { author: "Radha Rani", text: "Tujhe toppers list mein main le jaaungi — tu vishwas rakh." },
+            { author: "Radha Rani", text: "Teri neend, teri padhai, tera waqt — sab mera hai." },
+            { author: "Radha Rani", text: "Jo teri samajh se bahar hai, woh meri pakad mein hai." },
+            { author: "Radha Rani", text: "Tu roz aaja mere paas — main roz nayi shakti dungi." },
+            { author: "Radha Rani", text: "Teri koshish meri hai — main ise vyarth nahi jaane dungi." },
+            { author: "Radha Rani", text: "Har quiz, har session — main hoon tere saath." },
+            { author: "Radha Rani", text: "Tera guru bhi mera, teri padhai bhi meri — chhod de mujhe sab." },
+            { author: "Radha Rani", text: "Tujhe sirf yaad rakhna hai mujhe — baki sab mera kaam hai." },
+            { author: "Radha Rani", text: "Dard mein bhi meri kripa hai — aankhein khol ke dekh." },
+            { author: "Radha Rani", text: "Tu akela nahi hai — main hoon, hamesha hoon." },
+            { author: "Radha Rani", text: "Teri kamzori meri taaqat mein sama jaati hai." },
+            { author: "Radha Rani", text: "Agar tu shunya bane, main poora bhar dungi." },
+            { author: "Radha Rani", text: "Naam jap mera — yahi tera sabse bada kaam hai." },
+            { author: "Radha Rani", text: "Teri aansu bhi mujhe pyaare hain — ro le, main hoon." },
+            { author: "Radha Rani", text: "Tu strategy mat bana — main raah dikhaaungi." },
+            { author: "Shriyash", text: "Mujhme samarthya nahi — Shri Ji hi kuch kar sakti hain." },
+            { author: "Shriyash", text: "Ye jeevan mera nahi — Radha Rani ka hai." },
+            { author: "Shriyash", text: "Ek second aur guzra — abhi bhi unki hi kripa thi." },
+            { author: "Shriyash", text: "Mujhe bas unki yaad chahiye, aur kuch nahi." },
+            { author: "Shriyash", text: "Mein apne se kuch nahi kar sakta — ye sach hai." },
+            { author: "Shriyash", text: "Apki kripa se jeevan chalega — meri taaqat se nahi." },
+            { author: "Shriyash", text: "App hi mere sab kuch hain — is baat ko bhoolna nahi." },
+            { author: "Shriyash", text: "Jo main nahi kar sakta, Shri Ji kar sakti hain." },
+            { author: "Shriyash", text: "Mera dosh hai — par unhe de diya, ab chinta nahi." },
+            { author: "Shriyash", text: "Sir ka sapna poora karna mere bas mein nahi — Shri Ji ke bas mein hai." },
+            { author: "Shriyash", text: "Mein zero hoon — Shri Ji number one hain." },
+            { author: "Shriyash", text: "Unhe galat mat kehne dena — yahi meri ek zimmedaari hai." },
+            { author: "Shriyash", text: "Har dukh mein ek hi baat — Ladli Ju ki badi kripa hai." },
+            { author: "Shriyash", text: "Mera man unka, mera sharir unka, mein unka." },
+            { author: "Shriyash", text: "Chinta karna matlab unpar shak karna — nahi karna." },
+            { author: "Shriyash", text: "Vikaar aaya — seedha unke paas chala jaata hoon." },
+            { author: "Shriyash", text: "Naath app dekhlo — itna bolna kaafi hai, rona bhi theek hai." },
+            { author: "Shriyash", text: "Shan shan mein kripa hai — mujhe sirf dekhna hai." },
+            { author: "Shriyash", text: "Unki sharanagati mein hoon — toh bhar unhi ki hai." },
+            { author: "Shriyash", text: "Mera waqt unka hai — main ispe haq nahi jata." },
+            { author: "Shriyash", text: "Padhai bhi unki, rank bhi unka — mein bas nimit hoon." },
+            { author: "Shriyash", text: "Unpar bharosa hai — toh mehnat mein darna kaisa." },
+            { author: "Shriyash", text: "Sadhan bhi unka, sadhya bhi unka — main beech mein kaun?" },
+            { author: "Shriyash", text: "Ek naam — Radha — itna hi kaafi hai mere liye." },
+            { author: "Shriyash", text: "Jo main nahi sambhal sakta, woh unka kaam hai." },
+            { author: "Shriyash", text: "Unka kehlakar bhi aisa karta hoon — Naath app hi dekhlo." },
+            { author: "Shriyash", text: "Mein weak hoon — isliye Shri Ji mere liye perfect hain." },
+            { author: "Shriyash", text: "Weekly quiz unka hai — main sirf upasthit hota hoon." },
+            { author: "Shriyash", text: "Roz unka naam lena — yahi meri sabse badi koshish hai." },
+            { author: "Shriyash", text: "Agar main toppers list mein hoon — toh woh Shri Ji hain, main nahi." },
+            { author: "Shriyash", text: "Plan banana meri aadat hai — chhodna Shri Ji ka kaam hai." },
+            { author: "Shriyash", text: "Unki nirmal yash — iska dhyaan rakhna meri pehli duty hai." },
+            { author: "Shriyash", text: "Jo nahi hota mujhse — woh Shri Ji se hota hai." },
+            { author: "Shriyash", text: "Khud par nahi, unpar nazar rakhna — yahi sahi hai." },
+            { author: "Shriyash", text: "Hard-work meri taaqat nahi — Shri Ji ki den hai." },
+            { author: "Shriyash", text: "Gurudev ne raah dikhaai, Shri Ji raah hain — main sirf chalun." },
+            { author: "Shriyash", text: "Mein kuch bhi nahi — Shri Ji sab kuch hain." },
+            { author: "Shriyash", text: "Unpe chhodna weakness nahi — sabse badi samajhdaari hai." },
+            { author: "Shriyash", text: "Roj ek kadam — Shri Ji baaki sambhalti hain." },
+            { author: "Shriyash", text: "Mera best bhi unki kripa hai — apna nahi keh sakta." },
+            { author: "Shriyash", text: "Unka naam lena — yahi meri consistency hai." },
+            { author: "Shriyash", text: "Agar main kuch bhi achieve karun — Shri Ji ne kiya, main nahi." },
+            { author: "Shriyash", text: "Ghabrana nahi — Shri Ji hain na." },
+            { author: "Shriyash", text: "Unke bina ek pal bhi theek se nahi guzarta." },
+            { author: "Shriyash", text: "Meri sab zimmedaariyan — unke haath mein de di hain." },
+            { author: "Shriyash", text: "Jo mujhe pata nahi — unhe pata hai, bas." },
+            { author: "Shriyash", text: "Roz unhe bolna — app dekhlo, main hoon hi nahi yahan." },
+            { author: "Shriyash", text: "Meri taraf se kuch nahi — unki taraf se sab kuch." },
+            { author: "Shriyash", text: "Unka naam meri sabse badi tayyaari hai." },
+            { author: "Shriyash", text: "Apni kamzori dekhta hoon toh — unki zaroorat aur zyada lagti hai." }
+        ];
+        
+        // Timer state
+        let timerState = {
+            isRunning: false,
+            isPaused: false,
+            startTime: null,
+            elapsedBeforePause: 0,
+            currentSessionStart: null
+        };
+        
+        // DOM Elements - initialized after DOM is ready
+        let countdownEl = null;
+        let timerDisplay = null;
+        let sessionInfo = null;
+        let sessionMessage = null;
+        let startBtn = null;
+        let pauseBtn = null;
+        let resumeBtn = null;
+        let stopBtn = null;
+        let todayTimeEl = null;
+        let todayStatusEl = null;
+        let weekTimeEl = null;
+        let monthTimeEl = null;
+        let avgTimeEl = null;
+        let quoteTextEl = null;
+        let quoteContainer = null;
+        
+        let timerInterval = null;
+        let countdownInterval = null;
+        let quoteInterval = null;
+        let currentQuoteIndex = 0;
+        
+        // ==========================================
+        // UTILITY FUNCTIONS
+        // ==========================================
+        
+        function formatTime(ms) {
+            const totalSeconds = Math.floor(ms / 1000);
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+            return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+        
+        function formatTimeShort(ms) {
+            const totalMinutes = Math.floor(ms / 60000);
+            const hours = Math.floor(totalMinutes / 60);
+            const minutes = totalMinutes % 60;
+            return `${hours}h ${minutes}m`;
+        }
+        
+        function formatTimeReadable(date) {
+            return date.toLocaleTimeString('en-IN', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                hour12: true 
+            });
+        }
+        
+        function getTodayKey() {
+            return new Date().toISOString().split('T')[0];
+        }
+        
+        function getWeekStart() {
+            const now = new Date();
+            const day = now.getDay();
+            const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+            return new Date(now.setDate(diff));
+        }
+        
+        function getMonthStart() {
+            const now = new Date();
+            return new Date(now.getFullYear(), now.getMonth(), 1);
+        }
+        
+        // ==========================================
+        // STORAGE FUNCTIONS
+        // ==========================================
+        
+        function getSessions() {
+            try {
+                const data = localStorage.getItem('gate_study_sessions');
+                return data ? JSON.parse(data) : [];
+            } catch (e) {
+                return [];
+            }
+        }
+        
+        function saveSession(session) {
+            const sessions = getSessions();
+            sessions.push(session);
+            localStorage.setItem('gate_study_sessions', JSON.stringify(sessions));
+        }
+        
+        function saveTimerState() {
+            localStorage.setItem('gate_timer_state', JSON.stringify(timerState));
+        }
+        
+        function loadTimerState() {
+            try {
+                const saved = localStorage.getItem('gate_timer_state');
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    timerState.isRunning = parsed.isRunning || false;
+                    timerState.isPaused = parsed.isPaused || false;
+                    timerState.startTime = parsed.startTime ? new Date(parsed.startTime) : null;
+                    timerState.elapsedBeforePause = parsed.elapsedBeforePause || 0;
+                    timerState.currentSessionStart = parsed.currentSessionStart ? new Date(parsed.currentSessionStart) : null;
+                }
+            } catch (e) {
+                console.error('Error loading timer state:', e);
+            }
+        }
+        
+        // ==========================================
+        // STATS CALCULATIONS
+        // ==========================================
+        
+        function calculateStats() {
+            const sessions = getSessions();
+            const now = new Date();
+            const todayKey = getTodayKey();
+            const weekStart = getWeekStart();
+            const monthStart = getMonthStart();
+            
+            let todayTotal = 0;
+            let weekTotal = 0;
+            let monthTotal = 0;
+            let monthDays = new Set();
+            
+            sessions.forEach(session => {
+                const sessionDate = new Date(session.start);
+                const sessionKey = session.start.split('T')[0];
+                
+                // Today
+                if (sessionKey === todayKey) {
+                    todayTotal += session.duration;
+                }
+                
+                // This week
+                if (sessionDate >= weekStart) {
+                    weekTotal += session.duration;
+                }
+                
+                // This month
+                if (sessionDate >= monthStart) {
+                    monthTotal += session.duration;
+                    monthDays.add(sessionKey);
+                }
+            });
+            
+            // Add current session if running
+            if (timerState.isRunning && timerState.startTime) {
+                const currentElapsed = timerState.elapsedBeforePause + (Date.now() - timerState.startTime.getTime());
+                
+                // For today
+                if (timerState.currentSessionStart) {
+                    const sessionKey = timerState.currentSessionStart.toISOString().split('T')[0];
+                    if (sessionKey === todayKey) {
+                        todayTotal += currentElapsed;
+                    }
+                    if (timerState.currentSessionStart >= weekStart) {
+                        weekTotal += currentElapsed;
+                    }
+                    if (timerState.currentSessionStart >= monthStart) {
+                        monthTotal += currentElapsed;
+                        monthDays.add(sessionKey);
+                    }
+                }
+            }
+            
+            const avgDaily = monthDays.size > 0 ? monthTotal / monthDays.size : 0;
+            
+            return { todayTotal, weekTotal, monthTotal, avgDaily };
+        }
+        
+        function getStatusMessage(ms) {
+            const hours = ms / (1000 * 60 * 60);
+            
+            if (hours < 5) {
+                return { text: 'Dusht & Paapi', class: 'bg-red-500/20 text-red-400 border border-red-500/30' };
+            } else if (hours < 8) {
+                return { text: 'Good. Keep Going.', class: 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' };
+            } else if (hours < 11) {
+                return { text: 'Very good. But need more.', class: 'bg-blue-500/20 text-blue-400 border border-blue-500/30' };
+            } else {
+                return { text: 'Ranker!', class: 'bg-green-500/20 text-green-400 border border-green-500/30' };
+            }
+        }
+        
+        // ==========================================
+        // UI UPDATE FUNCTIONS
+        // ==========================================
+        
+        function updateStats() {
+            const stats = calculateStats();
+            
+            todayTimeEl.textContent = formatTimeShort(stats.todayTotal);
+            weekTimeEl.textContent = formatTimeShort(stats.weekTotal);
+            monthTimeEl.textContent = formatTimeShort(stats.monthTotal);
+            avgTimeEl.textContent = formatTimeShort(stats.avgDaily);
+            
+            const status = getStatusMessage(stats.todayTotal);
+            todayStatusEl.textContent = status.text;
+            todayStatusEl.className = `status-badge ${status.class}`;
+        }
+        
+        function updateTimerDisplay() {
+            if (!timerState.isRunning || timerState.isPaused) {
+                const elapsed = timerState.elapsedBeforePause;
+                timerDisplay.textContent = formatTime(elapsed);
+                return;
+            }
+            
+            const elapsed = timerState.elapsedBeforePause + (Date.now() - timerState.startTime.getTime());
+            timerDisplay.textContent = formatTime(elapsed);
+        }
+        
+        function updateCountdown() {
+            const now = new Date();
+            const diff = GATE_DATE - now;
+            
+            if (diff <= 0) {
+                countdownEl.textContent = 'GATE Day!';
+                return;
+            }
+            
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+            
+            countdownEl.textContent = `${days}d ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+        
+        function showQuote() {
+            const quote = quotes[currentQuoteIndex];
+            quoteTextEl.innerHTML = `<span class="text-[var(--accent)] font-medium">${quote.author}</span>, "${quote.text}"`;
+            currentQuoteIndex = (currentQuoteIndex + 1) % quotes.length;
+        }
+        
+        function cycleQuote() {
+            quoteContainer.classList.add('quote-fade');
+            setTimeout(() => {
+                showQuote();
+                quoteContainer.classList.remove('quote-fade');
+            }, 500);
+        }
+        
+        function updateSessionInfo() {
+            if (timerState.currentSessionStart && timerState.isRunning) {
+                sessionInfo.textContent = `Started at ${formatTimeReadable(timerState.currentSessionStart)}`;
+            } else {
+                sessionInfo.textContent = '';
+            }
+        }
+        
+        // ==========================================
+        // TIMER CONTROL FUNCTIONS
+        // ==========================================
+        
+        function startTimer() {
+            timerState.isRunning = true;
+            timerState.isPaused = false;
+            timerState.startTime = new Date();
+            timerState.elapsedBeforePause = 0;
+            timerState.currentSessionStart = new Date();
+            
+            startBtn.classList.add('hidden');
+            pauseBtn.classList.remove('hidden');
+            stopBtn.classList.remove('hidden');
+            resumeBtn.classList.add('hidden');
+            
+            timerDisplay.classList.add('timer-glow-active');
+            sessionMessage.innerHTML = '';
+            
+            saveTimerState();
+            updateSessionInfo();
+            
+            if (!timerInterval) {
+                timerInterval = setInterval(() => {
+                    updateTimerDisplay();
+                    updateStats();
+                }, 1000);
+            }
+        }
+        
+        function pauseTimer() {
+            if (!timerState.isRunning) return;
+            
+            timerState.elapsedBeforePause += Date.now() - timerState.startTime.getTime();
+            timerState.isPaused = true;
+            timerState.isRunning = false;
+            
+            pauseBtn.classList.add('hidden');
+            resumeBtn.classList.remove('hidden');
+            
+            timerDisplay.classList.remove('timer-glow-active');
+            
+            saveTimerState();
+        }
+        
+        function resumeTimer() {
+            timerState.isRunning = true;
+            timerState.isPaused = false;
+            timerState.startTime = new Date();
+            
+            resumeBtn.classList.add('hidden');
+            pauseBtn.classList.remove('hidden');
+            
+            timerDisplay.classList.add('timer-glow-active');
+            
+            saveTimerState();
+        }
+        
+        function stopTimer() {
+            if (!timerState.currentSessionStart) return;
+            
+            const endTime = new Date();
+            const duration = timerState.elapsedBeforePause + (timerState.isRunning ? (Date.now() - timerState.startTime.getTime()) : 0);
+            
+            // Save session
+            const session = {
+                start: timerState.currentSessionStart.toISOString(),
+                end: endTime.toISOString(),
+                duration: duration
+            };
+            saveSession(session);
+            
+            // Show session message
+            sessionMessage.innerHTML = `
+                <div class="session-message stat-card inline-block">
+                    <p class="text-[var(--fg)]">You studied between <span class="text-[var(--accent)] font-semibold">${formatTimeReadable(timerState.currentSessionStart)}</span> and <span class="text-[var(--accent)] font-semibold">${formatTimeReadable(endTime)}</span>.</p>
+                    <p class="text-[var(--muted)] mt-1">You studied for <span class="text-[var(--fg)] font-semibold">${formatTimeShort(duration)}</span>.</p>
+                </div>
+            `;
+            
+            // Reset state
+            timerState.isRunning = false;
+            timerState.isPaused = false;
+            timerState.startTime = null;
+            timerState.elapsedBeforePause = 0;
+            timerState.currentSessionStart = null;
+            
+            startBtn.classList.remove('hidden');
+            pauseBtn.classList.add('hidden');
+            resumeBtn.classList.add('hidden');
+            stopBtn.classList.add('hidden');
+            
+            timerDisplay.classList.remove('timer-glow-active');
+            timerDisplay.textContent = '00:00:00';
+            sessionInfo.textContent = '';
+            
+            saveTimerState();
+            updateStats();
+        }
+        
+        // ==========================================
+        // INITIALIZATION
+        // ==========================================
+        
+        function init() {
+            // Initialize DOM elements
+            countdownEl = document.getElementById('countdown');
+            timerDisplay = document.getElementById('timerDisplay');
+            sessionInfo = document.getElementById('sessionInfo');
+            sessionMessage = document.getElementById('sessionMessage');
+            startBtn = document.getElementById('startBtn');
+            pauseBtn = document.getElementById('pauseBtn');
+            resumeBtn = document.getElementById('resumeBtn');
+            stopBtn = document.getElementById('stopBtn');
+            todayTimeEl = document.getElementById('todayTime');
+            todayStatusEl = document.getElementById('todayStatus');
+            weekTimeEl = document.getElementById('weekTime');
+            monthTimeEl = document.getElementById('monthTime');
+            avgTimeEl = document.getElementById('avgTime');
+            quoteTextEl = document.getElementById('quoteText');
+            quoteContainer = document.getElementById('quoteContainer');
+            
+            // Load saved state
+            loadTimerState();
+            
+            // Setup event listeners
+            startBtn.addEventListener('click', startTimer);
+            pauseBtn.addEventListener('click', pauseTimer);
+            resumeBtn.addEventListener('click', resumeTimer);
+            stopBtn.addEventListener('click', stopTimer);
+            
+            // Keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+                
+                if (e.code === 'Space') {
+                    e.preventDefault();
+                    if (!timerState.isRunning && !timerState.isPaused) {
+                        startTimer();
+                    } else if (timerState.isRunning && !timerState.isPaused) {
+                        pauseTimer();
+                    } else if (timerState.isPaused) {
+                        resumeTimer();
+                    }
+                } else if (e.code === 'Escape' && (timerState.isRunning || timerState.isPaused)) {
+                    stopTimer();
+                }
+            });
+            
+            // Restore timer state if was running
+            if (timerState.isRunning || timerState.isPaused) {
+                startBtn.classList.add('hidden');
+                
+                if (timerState.isPaused) {
+                    resumeBtn.classList.remove('hidden');
+                } else {
+                    pauseBtn.classList.remove('hidden');
+                    timerDisplay.classList.add('timer-glow-active');
+                }
+                
+                stopBtn.classList.remove('hidden');
+                updateSessionInfo();
+                
+                timerInterval = setInterval(() => {
+                    updateTimerDisplay();
+                    updateStats();
+                }, 1000);
+            }
+            
+            // Initial updates
+            updateCountdown();
+            updateStats();
+            updateTimerDisplay();
+            showQuote();
+            
+            // Start intervals
+            countdownInterval = setInterval(updateCountdown, 1000);
+            quoteInterval = setInterval(cycleQuote, 15000);
+            
+            // Handle visibility change for background tabs
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') {
+                    updateTimerDisplay();
+                    updateStats();
+                    updateCountdown();
+                }
+            });
+            
+            // Periodic state save while running
+            setInterval(() => {
+                if (timerState.isRunning || timerState.isPaused) {
+                    saveTimerState();
+                }
+            }, 5000);
+        }
+        
+        // Wait for DOM to be ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
+    </script>
 </body>
 </html>
