@@ -1,484 +1,1369 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GATE 2027 Study Tracker</title>
-    
-    <style>
-        /* WHY: Universal reset. QOL: Prevents default browser margins from ruining the clean layout. */
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        
-        /* WHY: Set up the dark mode theme. QOL: Reduces eye strain during late-night study sessions. */
-        body {
-            background-color: #121212; /* Deep dark background */
-            color: #e0e0e0; /* Off-white text for high contrast without glare */
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-            padding: 2rem;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GATE 2027 · Shriyash</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet" />
 
-        /* WHY: Container for the top countdown. QOL: Keeps your ultimate goal front and center. */
-        #countdown-container {
-            font-size: 1.2rem;
-            color: #ff9800; /* Motivational orange */
-            margin-bottom: 2rem;
-            text-align: center;
-            font-weight: bold;
-        }
+  <style>
+    :root {
+      --bg:          #06060d;
+      --surface:     #0c0c18;
+      --border:      rgba(196,162,70,0.1);
+      --border-hi:   rgba(196,162,70,0.22);
+      --gold:        #c4a246;
+      --gold-bright: #debb60;
+      --gold-dim:    #74602a;
+      --gold-glow:   rgba(196,162,70,0.07);
+      --text:        #dbd3be;
+      --text-sub:    #706a58;
+      --text-dim:    #383430;
+      --red:         #b85248;
+      --green:       #4e9460;
+      --font:        'Manrope', system-ui, sans-serif;
+      --mono:        'JetBrains Mono', monospace;
+    }
 
-        /* WHY: Container for the dynamic quotes. QOL: Provides continuous motivation without cluttering the screen. */
-        #quote-container {
-            font-size: 1.1rem;
-            font-style: italic;
-            color: #b3b3b3;
-            text-align: center;
-            max-width: 800px;
-            margin-bottom: 3rem;
-            min-height: 60px; /* WHY: Fixed min-height. QOL: Prevents the page layout from jumping around when quote lengths change. */
-        }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-        /* WHY: The massive timer display. QOL: Easily readable at a glance, even if the window is snapped to the side of your screen. */
-        #timer-display {
-            font-size: 6rem;
-            font-weight: bold;
-            font-variant-numeric: tabular-nums; /* WHY: Tabular nums. QOL: Stops the timer text from wiggling left/right as numbers change width. */
-            letter-spacing: 2px;
-            margin-bottom: 2rem;
-            color: #ffffff;
-        }
+    html, body {
+      height: 100vh;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      -webkit-font-smoothing: antialiased;
+    }
 
-        /* WHY: Button layout container. QOL: Keeps buttons neatly aligned and spaced. */
-        .controls { display: flex; gap: 1rem; margin-bottom: 3rem; }
+    /* Noise grain — keeps the dark background alive */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='250' height='250'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='250' height='250' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+      opacity: 0.022;
+      pointer-events: none;
+      z-index: 9999;
+    }
 
-        /* WHY: Base button styling. QOL: Large click targets, satisfying hover effects for tactile feedback. */
-        button {
-            padding: 1rem 2rem;
-            font-size: 1.2rem;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: all 0.2s ease; /* WHY: Smooth transition. QOL: Feels premium and responsive to use. */
-        }
-        
-        /* WHY: Distinct button colors. QOL: Prevents accidental clicks. Green = Go, Yellow = Wait, Red = Stop. */
-        #btn-start { background-color: #4caf50; color: white; }
-        #btn-start:hover { background-color: #45a049; }
-        
-        #btn-pause { background-color: #ffc107; color: black; }
-        #btn-pause:hover { background-color: #ffb300; }
-        
-        #btn-stop { background-color: #f44336; color: white; }
-        #btn-stop:hover { background-color: #e53935; }
+    /* Ambient glow behind timer */
+    body::after {
+      content: '';
+      position: fixed;
+      top: 55%; left: 25%;
+      transform: translate(-50%, -50%);
+      width: 500px; height: 500px;
+      background: radial-gradient(ellipse, rgba(196,162,70,0.028) 0%, transparent 65%);
+      pointer-events: none;
+      z-index: 0;
+    }
 
-        /* WHY: Stats grid container. QOL: Organizes complex data into a readable dashboard. */
-        .stats-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* WHY: Auto-fit grid. QOL: Automatically adjusts layout for mobile vs desktop. */
-            gap: 1.5rem;
-            width: 100%;
-            max-width: 800px;
-            background-color: #1e1e1e;
-            padding: 2rem;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-        }
+    /* ─── App grid: header · countdown strip · main ─────────── */
+    .app {
+      height: 100vh;
+      display: grid;
+      grid-template-rows: 48px 78px 1fr;
+      position: relative;
+      z-index: 1;
+      animation: fadeUp 0.55s ease both;
+    }
 
-        /* WHY: Individual stat boxes. QOL: Distinct separation of data points. */
-        .stat-box { text-align: center; }
-        .stat-label { font-size: 0.9rem; color: #888; text-transform: uppercase; letter-spacing: 1px; }
-        .stat-value { font-size: 1.5rem; font-weight: bold; margin-top: 0.5rem; color: #4fc3f7; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: none; }
+    }
 
-        /* WHY: The daily rank/status message. QOL: Gives immediate psychological feedback on your day's effort. */
-        #daily-status {
-            grid-column: 1 / -1; /* Spans the whole grid row */
-            text-align: center;
-            font-size: 1.5rem;
-            font-weight: bold;
-            margin-top: 1rem;
-            padding-top: 1rem;
-            border-top: 1px solid #333;
-        }
+    /* ── Header ──────────────────────────────────────────────── */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 28px;
+      border-bottom: 1px solid var(--border);
+    }
 
-        /* WHY: Custom Modal (Popup) styling. QOL: Built-in browser alerts (alert()) look ugly and block the thread. This looks modern and integrated. */
-        #session-modal {
-            display: none; /* Hidden by default */
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.8);
-            justify-content: center; align-items: center;
-            z-index: 1000;
-        }
-        .modal-content {
-            background: #2c2c2c;
-            padding: 3rem;
-            border-radius: 12px;
-            text-align: center;
-            max-width: 500px;
-            border: 1px solid #4caf50;
-        }
-        .modal-content p { font-size: 1.2rem; margin-bottom: 2rem; line-height: 1.5; }
-        .modal-content button { background: #4caf50; color: white; }
-    </style>
+    .brand {
+      font-size: 0.64rem;
+      font-weight: 700;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--gold-dim);
+    }
+
+    .header-tag {
+      font-size: 0.6rem;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+
+    /* ── Countdown Strip — dedicated full-width row ─────────── */
+    /*
+       Moved out of the header so it can breathe and be read at a glance.
+       This is the main motivational anchor: every glance = time pressure = action.
+    */
+    .cd-strip {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(196,162,70,0.018) 0%, transparent 100%);
+      position: relative;
+    }
+
+    /* Thin gold line at top of strip for visual weight */
+    .cd-strip::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent 0%, rgba(196,162,70,0.18) 30%, rgba(196,162,70,0.18) 70%, transparent 100%);
+    }
+
+    .cd-label {
+      font-size: 0.52rem;
+      font-weight: 700;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--gold-dim);
+      margin-right: 22px;
+    }
+
+    .cd-units {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .cd-unit {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      padding: 0 10px;
+    }
+
+    .cd-num {
+      font-family: var(--mono);
+      font-size: 2rem;
+      font-weight: 300;
+      color: var(--gold-bright);
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+      min-width: 2ch;
+      text-align: center;
+    }
+
+    .cd-lbl {
+      font-size: 0.46rem;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+
+    .cd-sep {
+      font-family: var(--mono);
+      font-size: 1.5rem;
+      color: var(--gold-dim);
+      opacity: 0.35;
+      margin-bottom: 14px;
+      padding: 0 2px;
+    }
+
+    .cd-gate-label {
+      margin-left: 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .cd-gate-title {
+      font-size: 0.56rem;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--gold-dim);
+    }
+
+    .cd-gate-date {
+      font-size: 0.5rem;
+      font-weight: 400;
+      letter-spacing: 0.1em;
+      color: var(--text-dim);
+    }
+
+    /* ── Main: two panels split by 1px divider ──────────────── */
+    .main {
+      display: grid;
+      grid-template-columns: 1fr 1px 390px;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    .v-div { background: var(--border); align-self: stretch; }
+
+    /* ── LEFT PANEL ──────────────────────────────────────────── */
+    .left {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 44px 28px;
+      overflow: hidden;
+      margin-top: -20px; /* subtle upward nudge for the timer */
+    }
+
+    /* Quote — the heart of this page */
+    .quote-wrap {
+      width: 100%;
+      text-align: center;
+      margin-bottom: 28px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      position: relative;
+      padding: 22px 32px;
+    }
+
+    /* Decorative large opening quote mark */
+    .quote-wrap::before {
+      content: '\201C';
+      position: absolute;
+      top: -4px; left: 50%;
+      transform: translateX(-50%);
+      font-size: 5rem;
+      font-family: Georgia, serif;
+      line-height: 1;
+      color: rgba(196,162,70,0.08);
+      pointer-events: none;
+      user-select: none;
+    }
+
+    /* Subtle gold frame lines left and right */
+    .quote-wrap::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-left: 1px solid rgba(196,162,70,0.07);
+      border-right: 1px solid rgba(196,162,70,0.07);
+      border-radius: 2px;
+      pointer-events: none;
+    }
+
+    .qt {
+      font-size: 1.05rem;
+      font-weight: 300;
+      font-style: italic;
+      color: var(--text);
+      line-height: 1.75;
+      max-width: 500px;
+      opacity: 0;
+      transition: opacity 0.8s ease;
+      letter-spacing: 0.01em;
+      position: relative;
+      z-index: 1;
+    }
+
+    .qt.show { opacity: 1; }
+
+    .qs {
+      font-size: 0.6rem;
+      font-weight: 700;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--gold-dim);
+      opacity: 0;
+      transition: opacity 0.8s ease 0.15s;
+      margin-top: 14px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .qs.show { opacity: 1; }
+
+    /* Gold dot divider between quote and attribution */
+    .qs::before {
+      content: '· ';
+      color: rgba(196,162,70,0.3);
+      letter-spacing: 0.05em;
+    }
+
+    .rule {
+      width: 40px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(196,162,70,0.25), transparent);
+      margin: 0 auto 22px;
+    }
+
+    /* ── THE TIMER — as big as it can be ───────────────────────
+       Large font = high information density at a glance.
+       Every second that passes is visible and motivating.
+    */
+    .timer-block { text-align: center; width: 100%; }
+
+    .timer-num {
+      font-family: var(--mono);
+      font-size: 7.8rem;
+      font-weight: 300;
+      letter-spacing: 0.02em;
+      color: var(--gold-bright);
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+      transition: color 0.3s, opacity 0.3s;
+    }
+
+    /* Paused state — dim the timer, strong visual signal to resume */
+    .timer-num.paused { color: var(--text-dim); opacity: 0.5; }
+
+    /* Breathing underline — only on when session is running */
+    .timer-line {
+      height: 1px;
+      width: 0;
+      background: linear-gradient(90deg, transparent, var(--gold), transparent);
+      margin: 8px auto 0;
+      opacity: 0;
+      transition: width 0.55s ease, opacity 0.4s;
+    }
+
+    .timer-line.on {
+      width: 52%;
+      opacity: 1;
+      animation: breathe 2.4s ease-in-out infinite;
+    }
+
+    @keyframes breathe {
+      0%, 100% { opacity: 0.3; }
+      50%       { opacity: 1; }
+    }
+
+    /* "Started at 9:15 AM" — contextual session info */
+    .timer-meta {
+      font-size: 0.67rem;
+      font-weight: 400;
+      color: var(--text-sub);
+      letter-spacing: 0.04em;
+      text-align: center;
+      height: 16px;
+      margin: 12px 0 18px;
+    }
+
+    /* ── Buttons — bigger for easier interaction ────────────── */
+    .btn-row { display: flex; gap: 10px; }
+
+    .btn {
+      font-family: var(--font);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      padding: 13px 30px;
+      border-radius: 2px;
+      border: 1px solid;
+      cursor: pointer;
+      background: transparent;
+      transition: background 0.16s, border-color 0.16s, color 0.16s, transform 0.1s;
+      white-space: nowrap;
+      min-width: 90px;
+    }
+
+    .btn:active  { transform: scale(0.95); }
+    .btn:disabled { opacity: 0.16; cursor: not-allowed; pointer-events: none; }
+
+    .btn-start { border-color: var(--gold); color: var(--gold-bright); }
+    .btn-start:hover { background: rgba(196,162,70,0.09); }
+
+    .btn-pause { border-color: rgba(120,112,88,0.3); color: var(--text-sub); }
+    .btn-pause:hover { border-color: var(--gold-dim); color: var(--text); background: rgba(120,112,88,0.06); }
+
+    .btn-stop  { border-color: rgba(184,82,72,0.28); color: rgba(184,82,72,0.6); }
+    .btn-stop:hover  { border-color: var(--red); color: var(--red); background: rgba(184,82,72,0.06); }
+
+    /* ── Session end card — the reward moment ────────────────── */
+    .sess-card {
+      margin-top: 20px;
+      padding: 20px 28px 22px;
+      border: 1px solid rgba(196,162,70,0.22);
+      background: linear-gradient(135deg, rgba(196,162,70,0.04) 0%, rgba(196,162,70,0.01) 50%, rgba(196,162,70,0.06) 100%);
+      border-radius: 4px;
+      text-align: center;
+      width: 100%;
+      max-width: 440px;
+      opacity: 0;
+      transform: translateY(10px) scale(0.98);
+      transition: opacity 0.5s ease, transform 0.5s ease;
+      pointer-events: none;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Gold shimmer line at top of card */
+    .sess-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(196,162,70,0.7), transparent);
+    }
+
+    /* Subtle glow at bottom */
+    .sess-card::after {
+      content: '';
+      position: absolute;
+      bottom: -20px; left: 50%;
+      transform: translateX(-50%);
+      width: 200px; height: 60px;
+      background: radial-gradient(ellipse, rgba(196,162,70,0.07) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .sess-card.show {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+    }
+
+    .sc-lbl {
+      font-size: 0.5rem;
+      font-weight: 700;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--gold-dim);
+      margin-bottom: 14px;
+    }
+
+    /* Motivational phrase shown above duration */
+    .sc-kudos {
+      font-size: 0.78rem;
+      font-weight: 400;
+      font-style: italic;
+      color: var(--text-sub);
+      margin-bottom: 10px;
+      line-height: 1.5;
+    }
+
+    .sc-dur {
+      font-family: var(--mono);
+      font-size: 2.6rem;
+      font-weight: 300;
+      color: var(--gold-bright);
+      line-height: 1;
+      letter-spacing: 0.04em;
+      margin-bottom: 12px;
+    }
+
+    .sc-dur-label {
+      font-size: 0.48rem;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 14px;
+    }
+
+    .sc-body {
+      font-size: 0.7rem;
+      font-weight: 400;
+      color: var(--text-dim);
+      line-height: 1.6;
+      padding-top: 12px;
+      border-top: 1px solid rgba(196,162,70,0.08);
+    }
+
+    /* ── RIGHT PANEL ─────────────────────────────────────────── */
+    .right {
+      display: flex;
+      flex-direction: column;
+      padding: 15px 20px 12px;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    .panel-lbl {
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      color: var(--gold-dim);
+      margin-bottom: 10px;
+    }
+
+    /* ── Stats: one row per stat, full width ────────────────────
+       Changed from 3-column grid to single column.
+       Each card is now a horizontal row: label on left, value on right.
+       Reason: easier to scan, no cramped 3-column layout, matches
+       natural reading direction (label → value).
+    */
+    .stats {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 8px;
+    }
+
+    .scard {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 8px 13px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: border-color 0.2s;
+    }
+
+    .scard:hover { border-color: var(--border-hi); }
+
+    .sl {
+      font-size: 0.58rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-sub);
+    }
+
+    .sv {
+      font-family: var(--mono);
+      font-size: 1.03rem;
+      font-weight: 500;
+      color: var(--gold-bright);
+      font-variant-numeric: tabular-nums;
+    }
+    /* Status badge */
+    .badge {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 13px;
+      border-radius: 2px;
+      font-size: 0.74rem;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      border: 1px solid;
+      margin-bottom: 8px;
+      transition: all 0.4s;
+    }
+
+    .badge.bad   { border-color: rgba(184,82,72,0.3);  color: #c06058; background: rgba(184,82,72,0.05); }
+    .badge.ok    { border-color: rgba(78,148,96,0.3);  color: #60a870; background: rgba(78,148,96,0.05); }
+    .badge.good  { border-color: rgba(196,162,70,0.3); color: var(--gold); background: var(--gold-glow); }
+    .badge.great { border-color: rgba(196,162,70,0.6); color: var(--gold-bright); background: rgba(196,162,70,0.09); }
+
+    /* Today's sessions list */
+    .log-sep {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(196,162,70,0.25), transparent);
+      margin: 9px 0 9px;
+    }
+
+    .log-hdr {
+      font-size: 0.58rem;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--text-sub);
+      margin-bottom: 5px;
+    }
+
+    .log-list {
+      flex: 1;
+      overflow-y: auto;
+      min-height: 0;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(196,162,70,0.12) transparent;
+    }
+
+    .log-list::-webkit-scrollbar { width: 3px; }
+    .log-list::-webkit-scrollbar-track { background: transparent; }
+    .log-list::-webkit-scrollbar-thumb { background: rgba(196,162,70,0.14); border-radius: 2px; }
+
+    .log-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(196,162,70,0.05);
+    }
+
+    .log-row:last-child { border-bottom: none; }
+
+    .log-time {
+      font-size: 0.75rem;
+      font-weight: 400;
+      color: var(--text-sub);
+    }
+
+    .log-dur {
+      font-family: var(--mono);
+      font-size: 0.73rem;
+      font-weight: 500;
+      color: var(--gold);
+    }
+
+    .log-empty {
+      font-size: 0.78rem;
+      font-weight: 300;
+      font-style: italic;
+      color: var(--text-dim);
+      text-align: center;
+      padding: 18px 0;
+      line-height: 1.6;
+    }
+    /* ── Daily goal progress bar ─────────────────────────────────
+       Shows progress toward 11-hour daily goal.
+       Thin bar with fill + percentage — instant visual feedback.
+    */
+    .goal-wrap {
+      margin-bottom: 10px;
+    }
+    .goal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 5px;
+    }
+    .goal-label {
+      font-size: 0.55rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+    .goal-pct {
+      font-family: var(--mono);
+      font-size: 0.58rem;
+      font-weight: 600;
+      color: var(--gold-dim);
+      font-variant-numeric: tabular-nums;
+    }
+    .goal-bar {
+      height: 3px;
+      background: rgba(196,162,70,0.08);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .goal-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--gold-dim), var(--gold-bright));
+      border-radius: 2px;
+      transition: width 1s ease;
+      width: 0%;
+    }
+    .goal-fill.done {
+      background: linear-gradient(90deg, #4e9460, #60c478);
+    }
+
+    /* ── Keyboard shortcut hint ──────────────────────────────────
+       Shown below buttons. Reminds user of shortcuts after 1st use.
+       Very subtle — just for discoverability.
+    */
+    .kb-hint {
+      margin-top: 10px;
+      font-size: 0.52rem;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      color: var(--text-dim);
+      text-align: center;
+      opacity: 0.7;
+    }
+    .kb-hint kbd {
+      font-family: var(--mono);
+      font-size: 0.5rem;
+      background: rgba(196,162,70,0.07);
+      border: 1px solid rgba(196,162,70,0.12);
+      border-radius: 2px;
+      padding: 1px 4px;
+      color: var(--text-sub);
+    }
+
+    /* ── Break reminder toast ────────────────────────────────────
+       Appears after 90 min of unbroken study. Gentle nudge.
+       Auto-dismisses after 10 seconds. Non-intrusive.
+    */
+    .break-toast {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: linear-gradient(135deg, var(--surface), rgba(196,162,70,0.06));
+      border: 1px solid rgba(196,162,70,0.2);
+      border-radius: 4px;
+      padding: 12px 20px;
+      text-align: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s ease, transform 0.4s ease;
+      z-index: 100;
+      min-width: 320px;
+      max-width: 440px;
+    }
+    .break-toast::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(196,162,70,0.5), transparent);
+    }
+    .break-toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+      pointer-events: auto;
+    }
+    .bt-icon {
+      font-size: 1.1rem;
+      margin-bottom: 4px;
+    }
+    .bt-title {
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 4px;
+    }
+    .bt-msg {
+      font-size: 0.74rem;
+      font-weight: 300;
+      font-style: italic;
+      color: var(--text-sub);
+      line-height: 1.5;
+      margin-bottom: 8px;
+    }
+    .bt-dismiss {
+      font-size: 0.5rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      cursor: pointer;
+      background: none;
+      border: none;
+      font-family: var(--font);
+      padding: 0;
+    }
+    .bt-dismiss:hover { color: var(--text-sub); }
+  </style>
 </head>
 <body>
+<div class="app">
 
-    <div id="countdown-container">Time until GATE (1 Feb 2027): <span id="gate-countdown"></span></div>
-    
-    <div id="quote-container">Loading wisdom...</div>
+  <!-- ── HEADER: brand + CS&DA tag only ────────────────────── -->
+  <header class="header">
+    <span class="brand">Shriyash &middot; GATE 2027</span>
+    <span class="header-tag">CS &amp; DA</span>
+  </header>
 
-    <div id="timer-display">00:00:00</div>
+  <!-- ── COUNTDOWN STRIP: full-width, prominent ────────────── -->
+  <!--
+    Moved out of the header into its own dedicated row.
+    Bigger numbers = immediate awareness of urgency.
+    Reason: when you're studying for 10+ hours, glancing up should
+    immediately show you how much runway is left.
+  -->
+  <div class="cd-strip">
+    <span class="cd-label">Time to GATE</span>
+    <div class="cd-units">
+      <div class="cd-unit">
+        <span class="cd-num" id="cd-d">---</span>
+        <span class="cd-lbl">Days</span>
+      </div>
+      <span class="cd-sep">:</span>
+      <div class="cd-unit">
+        <span class="cd-num" id="cd-h">--</span>
+        <span class="cd-lbl">Hours</span>
+      </div>
+      <span class="cd-sep">:</span>
+      <div class="cd-unit">
+        <span class="cd-num" id="cd-m">--</span>
+        <span class="cd-lbl">Min</span>
+      </div>
+      <span class="cd-sep">:</span>
+      <div class="cd-unit">
+        <span class="cd-num" id="cd-s">--</span>
+        <span class="cd-lbl">Sec</span>
+      </div>
+    </div>
+    <div class="cd-gate-label">
+      <span class="cd-gate-title">GATE 2027</span>
+      <span class="cd-gate-date">1 Feb 2027</span>
+    </div>
+  </div>
 
-    <div class="controls">
-        <button id="btn-start">Start</button>
-        <button id="btn-pause">Pause</button>
-        <button id="btn-stop">Stop</button>
+  <!-- ── MAIN: timer (left) · divider · study log (right) ─── -->
+  <div class="main">
+
+    <!-- Left: Quote + Timer + Controls -->
+    <div class="left">
+
+      <div class="quote-wrap">
+        <p class="qt" id="qt"></p>
+        <span class="qs" id="qs"></span>
+      </div>
+
+      <div class="rule"></div>
+
+      <div class="timer-block">
+        <div class="timer-num" id="timer">00:00:00</div>
+        <div class="timer-line" id="tline"></div>
+      </div>
+
+      <div class="timer-meta" id="tmeta">&nbsp;</div>
+
+      <div class="btn-row">
+        <button class="btn btn-start" id="b-start" onclick="timerStart()" title="Start a new study session">Start</button>
+        <button class="btn btn-pause" id="b-pause" onclick="timerPause()" disabled title="Pause or resume the current session">Pause</button>
+        <button class="btn btn-stop"  id="b-stop"  onclick="timerStop()"  disabled title="End session and save to log">Stop</button>
+      </div>
+
+      <div class="kb-hint">
+        <kbd>Space</kbd> &nbsp;Start / Pause &nbsp;&nbsp; <kbd>Esc</kbd> &nbsp;Stop
+      </div>
+
+      <div class="sess-card" id="scard">
+        <div class="sc-lbl">Session Complete &nbsp;·&nbsp; Jai Shri Radhe</div>
+        <div class="sc-kudos" id="sc-kudos"></div>
+        <div class="sc-dur"  id="sc-dur"></div>
+        <div class="sc-dur-label">studied this session</div>
+        <div class="sc-body" id="sc-body"></div>
+      </div>
+
     </div>
 
-    <div class="stats-container">
-        <div class="stat-box"><div class="stat-label">Today</div><div class="stat-value" id="stat-today">0h 0m</div></div>
-        <div class="stat-box"><div class="stat-label">This Week</div><div class="stat-value" id="stat-week">0h 0m</div></div>
-        <div class="stat-box"><div class="stat-label">This Month</div><div class="stat-value" id="stat-month">0h 0m</div></div>
-        <div class="stat-box"><div class="stat-label">Daily Avg (Month)</div><div class="stat-value" id="stat-avg">0h 0m</div></div>
-        <div id="daily-status">Dusht & Paapi</div>
-    </div>
+    <div class="v-div"></div>
 
-    <div id="session-modal">
-        <div class="modal-content">
-            <p id="modal-text"></p>
-            <button onclick="closeModal()">Acknowledge</button>
+    <!-- Right: Study Log -->
+    <div class="right">
+
+      <div class="panel-lbl">Study Log</div>
+
+      <!-- Daily goal progress bar — 11h target, instant visual motivation -->
+      <div class="goal-wrap">
+        <div class="goal-header">
+          <span class="goal-label">Daily Goal &nbsp;·&nbsp; 11h</span>
+          <span class="goal-pct" id="goal-pct">0%</span>
         </div>
+        <div class="goal-bar"><div class="goal-fill" id="goal-fill"></div></div>
+      </div>
+      <div class="stats">
+        <div class="scard"><span class="sl">Today</span><span class="sv" id="s-today">0h 0m</span></div>
+        <div class="scard"><span class="sl">This Week</span><span class="sv" id="s-week">0h 0m</span></div>
+        <div class="scard"><span class="sl">This Month</span><span class="sv" id="s-month">0h 0m</span></div>
+        <div class="scard"><span class="sl">Daily Avg (studied days)</span><span class="sv" id="s-avg">0h 0m</span></div>
+        <div class="scard"><span class="sl">&#x1F525; Streak</span><span class="sv" id="s-streak">0 days</span></div>
+        <div class="scard"><span class="sl">All-Time</span><span class="sv" id="s-alltime">0h 0m</span></div>
+      </div>
+
+      <div class="badge bad" id="badge">Dusht &amp; Paapi &#x1F624;</div>
+
+      <div class="log-sep"></div>
+
+      <div class="log-hdr">Today&rsquo;s Sessions</div>
+      <div class="log-list" id="log-list">
+        <div class="log-empty">No sessions yet.<br>Begin your sadhana.</div>
+      </div>
+
     </div>
+  </div>
+</div>
 
-    <script>
-        // --- QUOTES DATA ---
-        // WHY: Array of all provided quotes. QOL: Centralized data structure makes it easy to add more later.
-        const quotes = [
-            "Gurudev, \"Sukh ho ya dukh, ek hi vichaar — Ladli Ju ki kripa hai.\"",
-            "Gurudev, \"Shan shan mein kripa hi kripa hai.\"",
-            "Gurudev, \"Yugal Sarkar ki bahut kripa hai — bas yahi yaad rakho.\"",
-            "Gurudev, \"Bhajan Shri Ji ke liye, Shri Ji ke dwara hi hoga.\"",
-            "Gurudev, \"Sadhan bhi priyalal, sadhya bhi priyalal.\"",
-            "Gurudev, \"Sharanagati matlab — saari bhar unki, teri koi nahi.\"",
-            "Gurudev, \"Nirantar naam japa — Radha Radha... yahi tera kaam hai.\"",
-            "Gurudev, \"Chinta karna matlab Radha Rani par vishwas nahi karna.\"",
-            "Gurudev, \"Tera man, tera sharir — sab kuch unka ho gaya hai.\"",
-            "Gurudev, \"Ab tu unka ho gaya hai, toh saari bhar unki hai.\"",
-            "Gurudev, \"Vikaar aaye toh rona mat — sirf bolna, Naath app dekhlo.\"",
-            "Gurudev, \"Bemani mat karna — unki sharanagati mein manmani nahi chalti.\"",
-            "Gurudev, \"Tere bhaav, aacharan, vritti — inki chinta unhe hai, tujhe nahi.\"",
-            "Gurudev, \"Unki nirmal yash ka kalank mat ban jaana.\"",
-            "Gurudev, \"Vishwas kar, chinta mat kar — bas itna kaafi hai.\"",
-            "Gurudev, \"Hey Naath, aaj se saara bhaar apka — ab chinta khatam.\"",
-            "Gurudev, \"Ro do bhai, par bolna — Naath app dekhlo, nischint raho.\"",
-            "Gurudev, \"Dosho ki chinta nahi — unke saamne aao, woh dekh lenge.\"",
-            "Gurudev, \"Mera sharan hokar chinta karta hai? Bilkul nahi karna.\"",
-            "Gurudev, \"Gurudev ne sharanagati di hai — ab teri zimmedaari unki hai.\"",
-            "Radha Rani, \"Tera bhaar mujhe de de — tu khali ho ja.\"",
-            "Radha Rani, \"Mera naam le — bas itna hi tera kaam hai.\"",
-            "Radha Rani, \"Tu kuch nahi kar sakta, main sab kar sakti hoon.\"",
-            "Radha Rani, \"Tera jeevan mera hai — main hi chalaaungi.\"",
-            "Radha Rani, \"Teri samarthya nahi hai, meri hai — is fark ko samajh le.\"",
-            "Radha Rani, \"Tu mera hai — toh teri chinta bhi meri hai.\"",
-            "Radha Rani, \"Tujhe meri yaad chahiye, mujhe teri — yahi rishta hai.\"",
-            "Radha Rani, \"Har pal meri kripa hai — tu dekh nahi raha, main hoon yahan.\"",
-            "Radha Rani, \"Bhajan bhi main karaaungi, tu bas aane de mujhe.\"",
-            "Radha Rani, \"Tere dosh tere nahi — la, mujhe de de.\"",
-            "Radha Rani, \"Tu ghabra mat — jo nahi kar sakta, woh main karti hoon.\"",
-            "Radha Rani, \"Ek second bhi meri kripa ke bina nahi guzra tere liye.\"",
-            "Radha Rani, \"Teri mehnat bhi meri, tera result bhi mera.\"",
-            "Radha Rani, \"Naam le mera — baki main sambhal lungi.\"",
-            "Radha Rani, \"Tu shunya hai, main poorna hoon — mil ja mujhse.\"",
-            "Radha Rani, \"Tera dil dukhta hai? La, mujhe dikha — main dekhti hoon.\"",
-            "Radha Rani, \"Tujhe toppers list mein main le jaaungi — tu vishwas rakh.\"",
-            "Radha Rani, \"Teri neend, teri padhai, tera waqt — sab mera hai.\"",
-            "Radha Rani, \"Jo teri samajh se bahar hai, woh meri pakad mein hai.\"",
-            "Radha Rani, \"Tu roz aaja mere paas — main roz nayi shakti dungi.\"",
-            "Radha Rani, \"Teri koshish meri hai — main ise vyarth nahi jaane dungi.\"",
-            "Radha Rani, \"Har quiz, har session — main hoon tere saath.\"",
-            "Radha Rani, \"Tera guru bhi mera, teri padhai bhi meri — chhod de mujhe sab.\"",
-            "Radha Rani, \"Tujhe sirf yaad rakhna hai mujhe — baki sab mera kaam hai.\"",
-            "Radha Rani, \"Dard mein bhi meri kripa hai — aankhein khol ke dekh.\"",
-            "Radha Rani, \"Tu akela nahi hai — main hoon, hamesha hoon.\"",
-            "Radha Rani, \"Teri kamzori meri taaqat mein sama jaati hai.\"",
-            "Radha Rani, \"Agar tu shunya bane, main poora bhar dungi.\"",
-            "Radha Rani, \"Naam jap mera — yahi tera sabse bada kaam hai.\"",
-            "Radha Rani, \"Teri aansu bhi mujhe pyaare hain — ro le, main hoon.\"",
-            "Radha Rani, \"Tu strategy mat bana — main raah dikhaaungi.\"",
-            "Shriyash, \"Mujhme samarthya nahi — Shri Ji hi kuch kar sakti hain.\"",
-            "Shriyash, \"Ye jeevan mera nahi — Radha Rani ka hai.\"",
-            "Shriyash, \"Ek second aur guzra — abhi bhi unki hi kripa thi.\"",
-            "Shriyash, \"Mujhe bas unki yaad chahiye, aur kuch nahi.\"",
-            "Shriyash, \"Mein apne se kuch nahi kar sakta — ye sach hai.\"",
-            "Shriyash, \"Apki kripa se jeevan chalega — meri taaqat se nahi.\"",
-            "Shriyash, \"App hi mere sab kuch hain — is baat ko bhoolna nahi.\"",
-            "Shriyash, \"Jo main nahi kar sakta, Shri Ji kar sakti hain.\"",
-            "Shriyash, \"Mera dosh hai — par unhe de diya, ab chinta nahi.\"",
-            "Shriyash, \"Sir ka sapna poora karna mere bas mein nahi — Shri Ji ke bas mein hai.\"",
-            "Shriyash, \"Mein zero hoon — Shri Ji number one hain.\"",
-            "Shriyash, \"Unhe galat mat kehne dena — yahi meri ek zimmedaari hai.\"",
-            "Shriyash, \"Har dukh mein ek hi baat — Ladli Ju ki badi kripa hai.\"",
-            "Shriyash, \"Mera man unka, mera sharir unka, mein unka.\"",
-            "Shriyash, \"Chinta karna matlab unpar shak karna — nahi karna.\"",
-            "Shriyash, \"Vikaar aaya — seedha unke paas chala jaata hoon.\"",
-            "Shriyash, \"Naath app dekhlo — itna bolna kaafi hai, rona bhi theek hai.\"",
-            "Shriyash, \"Shan shan mein kripa hai — mujhe sirf dekhna hai.\"",
-            "Shriyash, \"Unki sharanagati mein hoon — toh bhar unhi ki hai.\"",
-            "Shriyash, \"Mera waqt unka hai — main ispe haq nahi jata.\"",
-            "Shriyash, \"Padhai bhi unki, rank bhi unka — mein bas nimit hoon.\"",
-            "Shriyash, \"Unpar bharosa hai — toh mehnat mein darna kaisa.\"",
-            "Shriyash, \"Sadhan bhi unka, sadhya bhi unka — main beech mein kaun?\"",
-            "Shriyash, \"Ek naam — Radha — itna hi kaafi hai mere liye.\"",
-            "Shriyash, \"Jo main nahi sambhal sakta, woh unka kaam hai.\"",
-            "Shriyash, \"Unka kehlakar bhi aisa karta hoon — Naath app hi dekhlo.\"",
-            "Shriyash, \"Mein weak hoon — isliye Shri Ji mere liye perfect hain.\"",
-            "Shriyash, \"Weekly quiz unka hai — main sirf upasthit hota hoon.\"",
-            "Shriyash, \"Roz unka naam lena — yahi meri sabse badi koshish hai.\"",
-            "Shriyash, \"Agar main toppers list mein hoon — toh woh Shri Ji hain, main nahi.\"",
-            "Shriyash, \"Plan banana meri aadat hai — chhodna Shri Ji ka kaam hai.\"",
-            "Shriyash, \"Unki nirmal yash — iska dhyaan rakhna meri pehli duty hai.\"",
-            "Shriyash, \"Jo nahi hota mujhse — woh Shri Ji se hota hai.\"",
-            "Shriyash, \"Khud par nahi, unpar nazar rakhna — yahi sahi hai.\"",
-            "Shriyash, \"Hard-work meri taaqat nahi — Shri Ji ki den hai.\"",
-            "Shriyash, \"Gurudev ne raah dikhaai, Shri Ji raah hain — main sirf chalun.\"",
-            "Shriyash, \"Mein kuch bhi nahi — Shri Ji sab kuch hain.\"",
-            "Shriyash, \"Unpe chhodna weakness nahi — sabse badi samajhdaari hai.\"",
-            "Shriyash, \"Roj ek kadam — Shri Ji baaki sambhalti hain.\"",
-            "Shriyash, \"Mera best bhi unki kripa hai — apna nahi keh sakta.\"",
-            "Shriyash, \"Unka naam lena — yahi meri consistency hai.\"",
-            "Shriyash, \"Agar main kuch bhi achieve karun — Shri Ji ne kiya, main nahi.\"",
-            "Shriyash, \"Ghabrana nahi — Shri Ji hain na.\"",
-            "Shriyash, \"Unke bina ek pal bhi theek se nahi guzarta.\"",
-            "Shriyash, \"Meri sab zimmedaariyan — unke haath mein de di hain.\"",
-            "Shriyash, \"Jo mujhe pata nahi — unhe pata hai, bas.\"",
-            "Shriyash, \"Roz unhe bolna — app dekhlo, main hoon hi nahi yahan.\"",
-            "Shriyash, \"Meri taraf se kuch nahi — unki taraf se sab kuch.\"",
-            "Shriyash, \"Unka naam meri sabse badi tayyaari hai.\"",
-            "Shriyash, \"Apni kamzori dekhta hoon toh — unki zaroorat aur zyada lagti hai.\""
-        ];
+<!-- Break reminder toast — fires after 90 min of continuous study -->
+<div class="break-toast" id="break-toast" role="alert" aria-live="polite">
+  <div class="bt-icon">🌸</div>
+  <div class="bt-title">90 Minutes — Take a Short Break</div>
+  <div class="bt-msg">"Tu roz aaja mere paas — main roz nayi shakti dungi."<br><span style="font-size:0.62rem;color:var(--gold-dim);font-style:normal;letter-spacing:0.1em">— Radha Rani</span></div>
+  <button class="bt-dismiss" onclick="dismissBreak()">Dismiss &nbsp;·&nbsp; Continue Studying</button>
+</div>
 
-        // --- TIMER STATE VARIABLES ---
-        let startTime = 0; // WHY: Stores the absolute exact millisecond the timer started. QOL: Allows calculation of time even if the browser aggressively throttles the tab.
-        let totalElapsed = 0; // WHY: Accumulates time. QOL: Needed so pauses don't reset your progress.
-        let timerInterval = null; // WHY: Holds the setInterval ID. QOL: Allows us to clear/stop the loop precisely.
-        let isRunning = false; // WHY: Boolean lock. QOL: Prevents clicking 'Start' twice and creating runaway phantom timers.
-        let actualSessionStartString = ""; // WHY: Captures wall-clock start time. QOL: Required for the final "You studied between X and Y" message.
+<script>
+/* ─── CONSTANTS ───────────────────────────────────────────────── */
+/*
+  GATE 2027 date is set to Feb 1 in IST (UTC+5:30).
+  Using a fixed ISO offset ensures correctness even if the browser
+  locale changes — important for a GitHub Pages deployment.
+*/
+const GATE_DATE    = new Date('2027-02-01T00:00:00+05:30');
+const KEY_TIMER    = 'gate_timer_v3';
+const KEY_SESSIONS = 'gate_sessions_v1';
 
-        // --- DOM ELEMENTS ---
-        const display = document.getElementById('timer-display');
-        const quoteEl = document.getElementById('quote-container');
+/* ─── QUOTES ──────────────────────────────────────────────────── */
+const QUOTES = [
+  {t:"Sukh ho ya dukh, ek hi vichaar — Ladli Ju ki kripa hai.",s:"Gurudev"},
+  {t:"Shan shan mein kripa hi kripa hai.",s:"Gurudev"},
+  {t:"Yugal Sarkar ki bahut kripa hai — bas yahi yaad rakho.",s:"Gurudev"},
+  {t:"Bhajan Shri Ji ke liye, Shri Ji ke dwara hi hoga.",s:"Gurudev"},
+  {t:"Sadhan bhi priyalal, sadhya bhi priyalal.",s:"Gurudev"},
+  {t:"Sharanagati matlab — saari bhar unki, teri koi nahi.",s:"Gurudev"},
+  {t:"Nirantar naam japa — Radha Radha... yahi tera kaam hai.",s:"Gurudev"},
+  {t:"Chinta karna matlab Radha Rani par vishwas nahi karna.",s:"Gurudev"},
+  {t:"Tera man, tera sharir — sab kuch unka ho gaya hai.",s:"Gurudev"},
+  {t:"Ab tu unka ho gaya hai, toh saari bhar unki hai.",s:"Gurudev"},
+  {t:"Vikaar aaye toh rona mat — sirf bolna, Naath app dekhlo.",s:"Gurudev"},
+  {t:"Bemani mat karna — unki sharanagati mein manmani nahi chalti.",s:"Gurudev"},
+  {t:"Tere bhaav, aacharan, vritti — inki chinta unhe hai, tujhe nahi.",s:"Gurudev"},
+  {t:"Unki nirmal yash ka kalank mat ban jaana.",s:"Gurudev"},
+  {t:"Vishwas kar, chinta mat kar — bas itna kaafi hai.",s:"Gurudev"},
+  {t:"Hey Naath, aaj se saara bhaar apka — ab chinta khatam.",s:"Gurudev"},
+  {t:"Ro do bhai, par bolna — Naath app dekhlo, nischint raho.",s:"Gurudev"},
+  {t:"Dosho ki chinta nahi — unke saamne aao, woh dekh lenge.",s:"Gurudev"},
+  {t:"Mera sharan hokar chinta karta hai? Bilkul nahi karna.",s:"Gurudev"},
+  {t:"Gurudev ne sharanagati di hai — ab teri zimmedaari unki hai.",s:"Gurudev"},
+  {t:"Tera bhaar mujhe de de — tu khali ho ja.",s:"Radha Rani"},
+  {t:"Mera naam le — bas itna hi tera kaam hai.",s:"Radha Rani"},
+  {t:"Tu kuch nahi kar sakta, main sab kar sakti hoon.",s:"Radha Rani"},
+  {t:"Tera jeevan mera hai — main hi chalaaungi.",s:"Radha Rani"},
+  {t:"Teri samarthya nahi hai, meri hai — is fark ko samajh le.",s:"Radha Rani"},
+  {t:"Tu mera hai — toh teri chinta bhi meri hai.",s:"Radha Rani"},
+  {t:"Tujhe meri yaad chahiye, mujhe teri — yahi rishta hai.",s:"Radha Rani"},
+  {t:"Har pal meri kripa hai — tu dekh nahi raha, main hoon yahan.",s:"Radha Rani"},
+  {t:"Bhajan bhi main karaaungi, tu bas aane de mujhe.",s:"Radha Rani"},
+  {t:"Tere dosh tere nahi — la, mujhe de de.",s:"Radha Rani"},
+  {t:"Tu ghabra mat — jo nahi kar sakta, woh main karti hoon.",s:"Radha Rani"},
+  {t:"Ek second bhi meri kripa ke bina nahi guzra tere liye.",s:"Radha Rani"},
+  {t:"Teri mehnat bhi meri, tera result bhi mera.",s:"Radha Rani"},
+  {t:"Naam le mera — baki main sambhal lungi.",s:"Radha Rani"},
+  {t:"Tu shunya hai, main poorna hoon — mil ja mujhse.",s:"Radha Rani"},
+  {t:"Tera dil dukhta hai? La, mujhe dikha — main dekhti hoon.",s:"Radha Rani"},
+  {t:"Tujhe toppers list mein main le jaaungi — tu vishwas rakh.",s:"Radha Rani"},
+  {t:"Teri neend, teri padhai, tera waqt — sab mera hai.",s:"Radha Rani"},
+  {t:"Jo teri samajh se bahar hai, woh meri pakad mein hai.",s:"Radha Rani"},
+  {t:"Tu roz aaja mere paas — main roz nayi shakti dungi.",s:"Radha Rani"},
+  {t:"Teri koshish meri hai — main ise vyarth nahi jaane dungi.",s:"Radha Rani"},
+  {t:"Har quiz, har session — main hoon tere saath.",s:"Radha Rani"},
+  {t:"Tera guru bhi mera, teri padhai bhi meri — chhod de mujhe sab.",s:"Radha Rani"},
+  {t:"Tujhe sirf yaad rakhna hai mujhe — baki sab mera kaam hai.",s:"Radha Rani"},
+  {t:"Dard mein bhi meri kripa hai — aankhein khol ke dekh.",s:"Radha Rani"},
+  {t:"Tu akela nahi hai — main hoon, hamesha hoon.",s:"Radha Rani"},
+  {t:"Teri kamzori meri taaqat mein sama jaati hai.",s:"Radha Rani"},
+  {t:"Agar tu shunya bane, main poora bhar dungi.",s:"Radha Rani"},
+  {t:"Naam jap mera — yahi tera sabse bada kaam hai.",s:"Radha Rani"},
+  {t:"Teri aansu bhi mujhe pyaare hain — ro le, main hoon.",s:"Radha Rani"},
+  {t:"Tu strategy mat bana — main raah dikhaaungi.",s:"Radha Rani"},
+  {t:"Mujhme samarthya nahi — Shri Ji hi kuch kar sakti hain.",s:"Shriyash"},
+  {t:"Ye jeevan mera nahi — Radha Rani ka hai.",s:"Shriyash"},
+  {t:"Ek second aur guzra — abhi bhi unki hi kripa thi.",s:"Shriyash"},
+  {t:"Mujhe bas unki yaad chahiye, aur kuch nahi.",s:"Shriyash"},
+  {t:"Mein apne se kuch nahi kar sakta — ye sach hai.",s:"Shriyash"},
+  {t:"Apki kripa se jeevan chalega — meri taaqat se nahi.",s:"Shriyash"},
+  {t:"App hi mere sab kuch hain — is baat ko bhoolna nahi.",s:"Shriyash"},
+  {t:"Jo main nahi kar sakta, Shri Ji kar sakti hain.",s:"Shriyash"},
+  {t:"Mera dosh hai — par unhe de diya, ab chinta nahi.",s:"Shriyash"},
+  {t:"Sir ka sapna poora karna mere bas mein nahi — Shri Ji ke bas mein hai.",s:"Shriyash"},
+  {t:"Mein zero hoon — Shri Ji number one hain.",s:"Shriyash"},
+  {t:"Unhe galat mat kehne dena — yahi meri ek zimmedaari hai.",s:"Shriyash"},
+  {t:"Har dukh mein ek hi baat — Ladli Ju ki badi kripa hai.",s:"Shriyash"},
+  {t:"Mera man unka, mera sharir unka, mein unka.",s:"Shriyash"},
+  {t:"Chinta karna matlab unpar shak karna — nahi karna.",s:"Shriyash"},
+  {t:"Vikaar aaya — seedha unke paas chala jaata hoon.",s:"Shriyash"},
+  {t:"Naath app dekhlo — itna bolna kaafi hai, rona bhi theek hai.",s:"Shriyash"},
+  {t:"Shan shan mein kripa hai — mujhe sirf dekhna hai.",s:"Shriyash"},
+  {t:"Unki sharanagati mein hoon — toh bhar unhi ki hai.",s:"Shriyash"},
+  {t:"Mera waqt unka hai — main ispe haq nahi jata.",s:"Shriyash"},
+  {t:"Padhai bhi unki, rank bhi unka — mein bas nimit hoon.",s:"Shriyash"},
+  {t:"Unpar bharosa hai — toh mehnat mein darna kaisa.",s:"Shriyash"},
+  {t:"Sadhan bhi unka, sadhya bhi unka — main beech mein kaun?",s:"Shriyash"},
+  {t:"Ek naam — Radha — itna hi kaafi hai mere liye.",s:"Shriyash"},
+  {t:"Jo main nahi sambhal sakta, woh unka kaam hai.",s:"Shriyash"},
+  {t:"Unka kehlakar bhi aisa karta hoon — Naath app hi dekhlo.",s:"Shriyash"},
+  {t:"Mein weak hoon — isliye Shri Ji mere liye perfect hain.",s:"Shriyash"},
+  {t:"Weekly quiz unka hai — main sirf upasthit hota hoon.",s:"Shriyash"},
+  {t:"Roz unka naam lena — yahi meri sabse badi koshish hai.",s:"Shriyash"},
+  {t:"Agar main toppers list mein hoon — toh woh Shri Ji hain, main nahi.",s:"Shriyash"},
+  {t:"Plan banana meri aadat hai — chhodna Shri Ji ka kaam hai.",s:"Shriyash"},
+  {t:"Unki nirmal yash — iska dhyaan rakhna meri pehli duty hai.",s:"Shriyash"},
+  {t:"Jo nahi hota mujhse — woh Shri Ji se hota hai.",s:"Shriyash"},
+  {t:"Khud par nahi, unpar nazar rakhna — yahi sahi hai.",s:"Shriyash"},
+  {t:"Hard-work meri taaqat nahi — Shri Ji ki den hai.",s:"Shriyash"},
+  {t:"Gurudev ne raah dikhaai, Shri Ji raah hain — main sirf chalun.",s:"Shriyash"},
+  {t:"Mein kuch bhi nahi — Shri Ji sab kuch hain.",s:"Shriyash"},
+  {t:"Unpe chhodna weakness nahi — sabse badi samajhdaari hai.",s:"Shriyash"},
+  {t:"Roj ek kadam — Shri Ji baaki sambhalti hain.",s:"Shriyash"},
+  {t:"Mera best bhi unki kripa hai — apna nahi keh sakta.",s:"Shriyash"},
+  {t:"Unka naam lena — yahi meri consistency hai.",s:"Shriyash"},
+  {t:"Agar main kuch bhi achieve karun — Shri Ji ne kiya, main nahi.",s:"Shriyash"},
+  {t:"Ghabrana nahi — Shri Ji hain na.",s:"Shriyash"},
+  {t:"Unke bina ek pal bhi theek se nahi guzarta.",s:"Shriyash"},
+  {t:"Meri sab zimmedaariyan — unke haath mein de di hain.",s:"Shriyash"},
+  {t:"Jo mujhe pata nahi — unhe pata hai, bas.",s:"Shriyash"},
+  {t:"Roz unhe bolna — app dekhlo, main hoon hi nahi yahan.",s:"Shriyash"},
+  {t:"Meri taraf se kuch nahi — unki taraf se sab kuch.",s:"Shriyash"},
+  {t:"Unka naam meri sabse badi tayyaari hai.",s:"Shriyash"},
+  {t:"Apni kamzori dekhta hoon toh — unki zaroorat aur zyada lagti hai.",s:"Shriyash"},
+];
 
-        // --- CORE TIMER LOGIC ---
-        
-        // WHY: Formatting function (ms -> HH:MM:SS). QOL: Humans read hours/mins/secs, not milliseconds. PadStart ensures "09" instead of "9".
-        function formatTime(ms) {
-            let totalSeconds = Math.floor(ms / 1000);
-            let hours = Math.floor(totalSeconds / 3600);
-            let minutes = Math.floor((totalSeconds % 3600) / 60);
-            let seconds = totalSeconds % 60;
-            return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-        }
+function shuffle(a){
+  const b=[...a];
+  for(let i=b.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [b[i],b[j]]=[b[j],b[i]];
+  }
+  return b;
+}
 
-        // WHY: The core update loop. QOL: Runs frequently to update UI. Because it relies on Date.now(), if the tab is backgrounded and misses ticks, it instantly "catches up" the second you open the tab again.
-        function updateDisplay() {
-            if (isRunning) {
-                totalElapsed = Date.now() - startTime;
-            }
-            display.textContent = formatTime(totalElapsed);
-        }
+let pool=shuffle(QUOTES), qi=0;
 
-        document.getElementById('btn-start').addEventListener('click', () => {
-            if (!isRunning) { // WHY: Check if already running. QOL: Protects state.
-                isRunning = true;
-                startTime = Date.now() - totalElapsed; // WHY: Subtract elapsed. QOL: If resuming from pause, this shifts the "startTime" back so the math perfectly accounts for time already studied.
-                if (totalElapsed === 0) {
-                    actualSessionStartString = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); // WHY: Format to short time. QOL: Looks cleaner (e.g., "10:30 AM" instead of a huge string).
-                }
-                timerInterval = setInterval(updateDisplay, 100); // WHY: 100ms update. QOL: Fast enough to feel instantly responsive, slow enough to not drain battery.
-            }
-        });
+function nextQuote(){
+  const qt=document.getElementById('qt'), qs=document.getElementById('qs');
+  qt.classList.remove('show'); qs.classList.remove('show');
+  setTimeout(()=>{
+    if(qi>=pool.length){pool=shuffle(QUOTES);qi=0;}
+    const q=pool[qi++];
+    qt.textContent='\u201C'+q.t+'\u201D';
+    qs.textContent=q.s;
+    qt.classList.add('show'); qs.classList.add('show');
+  },500);
+}
+nextQuote();
+setInterval(nextQuote,30000);
 
-        document.getElementById('btn-pause').addEventListener('click', () => {
-            if (isRunning) {
-                isRunning = false;
-                clearInterval(timerInterval); // WHY: Stops the loop. QOL: Pauses tracking immediately for your break.
-                totalElapsed = Date.now() - startTime; // WHY: Final calculation before stopping loop. QOL: Ensures absolute precision.
-                updateDisplay(); // WHY: One last UI update. QOL: Secures the visual state.
-            }
-        });
+/* ─── COUNTDOWN ───────────────────────────────────────────────── */
+function tickCD(){
+  const diff=GATE_DATE-Date.now();
+  if(diff<=0){
+    document.querySelector('.cd-units').innerHTML=
+      '<span style="font-family:var(--mono);font-size:1.4rem;color:var(--gold-bright);letter-spacing:0.06em">Jai Shri Radhe — GATE Day!</span>';
+    return;
+  }
+  const d=Math.floor(diff/86400000),
+        h=Math.floor((diff%86400000)/3600000),
+        m=Math.floor((diff%3600000)/60000),
+        s=Math.floor((diff%60000)/1000);
+  document.getElementById('cd-d').textContent=d;
+  document.getElementById('cd-h').textContent=pad(h);
+  document.getElementById('cd-m').textContent=pad(m);
+  document.getElementById('cd-s').textContent=pad(s);
+}
+tickCD(); setInterval(tickCD,1000);
 
-        document.getElementById('btn-stop').addEventListener('click', () => {
-            if (totalElapsed === 0 && !isRunning) return; // WHY: Guard clause. QOL: Clicking stop on 00:00:00 does nothing, preventing blank entries.
-            
-            // WHY: Force a final update if running. QOL: Captures the exact millisecond you clicked stop.
-            if (isRunning) {
-                isRunning = false;
-                clearInterval(timerInterval);
-                totalElapsed = Date.now() - startTime;
-            }
+/* ─── HELPERS ─────────────────────────────────────────────────── */
+function pad(n){return String(n).padStart(2,'0');}
 
-            let actualSessionEndString = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            let durationString = formatTime(totalElapsed);
+/* "YYYY-MM-DD" from a ms timestamp (defaults to now) */
+function dk(ts){
+  const d=new Date(ts??Date.now());
+  return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+}
 
-            // WHY: Save function call. QOL: Persists your hard work to local storage so a page refresh doesn't destroy your history.
-            saveSessionToLog(totalElapsed);
+/* Is a ms timestamp in the current Mon–Sun week? */
+function inWeek(ts){
+  const now=new Date(), dow=(now.getDay()+6)%7;
+  const mon=new Date(now); mon.setDate(now.getDate()-dow); mon.setHours(0,0,0,0);
+  return new Date(ts)>=mon;
+}
 
-            // WHY: Show custom modal. QOL: Alert() blocks JS thread and is annoying. Modals are seamless.
-            document.getElementById('modal-text').innerText = `You studied between ${actualSessionStartString} and ${actualSessionEndString}.\nYou studied for ${durationString}.`;
-            document.getElementById('session-modal').style.display = 'flex';
+/* Is a ms timestamp in the current calendar month? */
+function inMonth(ts){
+  const n=new Date(),d=new Date(ts);
+  return d.getFullYear()===n.getFullYear()&&d.getMonth()===n.getMonth();
+}
 
-            // WHY: Reset state. QOL: Readies the tracker for the next session.
-            totalElapsed = 0;
-            updateDisplay();
-            updateStats(); // WHY: Update dashboard. QOL: You instantly see your new totals increase.
-        });
+/* Format ms → "HH:MM:SS" */
+function fmtDur(ms){
+  const s=Math.floor(Math.max(0,ms)/1000);
+  return pad(Math.floor(s/3600))+':'+pad(Math.floor((s%3600)/60))+':'+pad(s%60);
+}
 
-        // WHY: Closes the modal. QOL: Gives you control to dismiss the message.
-        function closeModal() {
-            document.getElementById('session-modal').style.display = 'none';
-        }
+/* Format timestamp → "9:15 AM" */
+function fmtT(ms){
+  const d=new Date(ms); let h=d.getHours(),m=d.getMinutes();
+  const ap=h>=12?'PM':'AM'; h=h%12||12;
+  return h+':'+pad(m)+'\u202F'+ap;
+}
 
-        // --- DATA LOGGING & STATS LOGIC ---
-        
-        // WHY: LocalStorage wrapper. QOL: Saves data directly to the browser. Works completely offline, requires no database or backend.
-        function saveSessionToLog(durationMs) {
-            let today = new Date().toISOString().split('T')[0]; // WHY: Gets YYYY-MM-DD. QOL: Standardized key for grouping daily study time.
-            let logs = JSON.parse(localStorage.getItem('gate_study_logs')) || {};
-            
-            if (!logs[today]) logs[today] = 0;
-            logs[today] += durationMs; // Add new session time to today's total
-            
-            localStorage.setItem('gate_study_logs', JSON.stringify(logs));
-        }
+/* Format ms → "Xh Ym" */
+function fmtHM(ms){
+  return Math.floor(ms/3600000)+'h\u202F'+Math.floor((ms%3600000)/60000)+'m';
+}
 
-        // WHY: Formats ms to 'Xh Ym'. QOL: "5h 30m" is vastly easier to read on a dashboard than "05:30:00".
-        function formatStatsTime(ms) {
-            let totalMins = Math.floor(ms / 60000);
-            let hours = Math.floor(totalMins / 60);
-            let mins = totalMins % 60;
-            return `${hours}h ${mins}m`;
-        }
+/* ─── TIMER STATE ─────────────────────────────────────────────── */
+/*
+   ACCURACY GUARANTEE:
+   elapsed = (now - sessionStart) - totalPaused - ongoingPauseDuration
+   This is computed fresh on every read using real wall-clock timestamps.
+   setInterval is ONLY used to refresh the visible display.
+   Therefore: sleeping laptop, throttled background tab, page refresh —
+   none of these affect accuracy. The number is always correct when read.
+*/
+let ts={status:'idle',sessionStart:null,pauseStart:null,totalPaused:0};
+let _iv=null;
 
-        // WHY: The heavy lifting for the dashboard. QOL: Automatically calculates daily, weekly, and monthly progress based on real calendar days.
-        function updateStats() {
-            let logs = JSON.parse(localStorage.getItem('gate_study_logs')) || {};
-            let now = new Date();
-            let todayStr = now.toISOString().split('T')[0];
-            
-            let todayMs = logs[todayStr] || 0;
-            
-            // Week Calculation
-            // WHY: Determine start of current week (Monday). QOL: Aligns with standard student planning cycles.
-            let dayOfWeek = now.getDay();
-            let distanceToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; 
-            let startOfWeek = new Date(now);
-            startOfWeek.setDate(now.getDate() - distanceToMonday);
-            startOfWeek.setHours(0,0,0,0);
+function saveTS(){localStorage.setItem(KEY_TIMER,JSON.stringify(ts));}
+function loadTS(){
+  try{const r=localStorage.getItem(KEY_TIMER);if(r)ts=JSON.parse(r);}catch(e){}
+}
 
-            let weekMs = 0;
-            let monthMs = 0;
-            let daysStudiedThisMonth = 0;
+function elapsed(){
+  if(!ts.sessionStart)return 0;
+  // If currently paused, include ongoing pause duration in the subtraction
+  const op=(ts.status==='paused'&&ts.pauseStart)?(Date.now()-ts.pauseStart):0;
+  return Math.max(0,Date.now()-ts.sessionStart-ts.totalPaused-op);
+}
 
-            let currentMonth = now.getMonth();
-            let currentYear = now.getFullYear();
+function refreshDisplay(){
+  const t=fmtDur(elapsed());
+  document.getElementById('timer').textContent=t;
+  // Live timer in tab title — critical for lecture-tab users
+  if(ts.status==='running') document.title='\u25B6\uFE0E '+t+' \u00B7 GATE 2027';
+  else if(ts.status==='paused') document.title='\u23F8\uFE0E '+t+' \u00B7 GATE 2027';
+  updateGoalBar();
+  checkBreakReminder();
+}
 
-            // WHY: Loop through all saved logs. QOL: Dynamically bucket time into Week and Month without complex database queries.
-            for (const [dateStr, ms] of Object.entries(logs)) {
-                let logDate = new Date(dateStr);
-                
-                // Week
-                if (logDate >= startOfWeek) {
-                    weekMs += ms;
-                }
-                
-                // Month
-                if (logDate.getMonth() === currentMonth && logDate.getFullYear() === currentYear) {
-                    monthMs += ms;
-                    daysStudiedThisMonth++;
-                }
-            }
+/* Sync all button states and visuals to current status */
+function applyUI(st){
+  const bs=document.getElementById('b-start'),
+        bp=document.getElementById('b-pause'),
+        bx=document.getElementById('b-stop'),
+        td=document.getElementById('timer'),
+        tl=document.getElementById('tline');
+  bs.disabled = st!=='idle';
+  bp.disabled = st==='idle';
+  bx.disabled = st==='idle';
+  bp.textContent = st==='paused'?'Resume':'Pause';
+  td.classList.toggle('paused', st==='paused');
+  tl.classList.toggle('on',     st==='running');
+}
 
-            // Averages
-            // WHY: Calculate average. QOL: Shows your realistic pace, ignoring days you haven't lived yet.
-            let avgMs = daysStudiedThisMonth === 0 ? 0 : monthMs / daysStudiedThisMonth;
+/* ─── START ───────────────────────────────────────────────────── */
+function timerStart(){
+  if(ts.status!=='idle')return;
+  ts={status:'running',sessionStart:Date.now(),pauseStart:null,totalPaused:0};
+  // Hide any previous session summary card and clear its content
+  const sc=document.getElementById('scard');
+  sc.classList.remove('show');
+  document.getElementById('sc-kudos').textContent='';
+  document.getElementById('sc-dur').textContent='';
+  document.getElementById('sc-body').textContent='';
+  document.getElementById('tmeta').textContent='Started at\u202F'+fmtT(ts.sessionStart);
+  saveTS(); applyUI('running');
+  clearInterval(_iv); _iv=setInterval(refreshDisplay,1000); refreshDisplay();
+}
 
-            // Update UI
-            document.getElementById('stat-today').innerText = formatStatsTime(todayMs);
-            document.getElementById('stat-week').innerText = formatStatsTime(weekMs);
-            document.getElementById('stat-month').innerText = formatStatsTime(monthMs);
-            document.getElementById('stat-avg').innerText = formatStatsTime(avgMs);
+/* ─── PAUSE / RESUME ──────────────────────────────────────────── */
+function timerPause(){
+  if(ts.status==='running'){
+    ts.pauseStart=Date.now(); ts.status='paused';
+    clearInterval(_iv);
+    // Display remains at last elapsed — still accurate via elapsed()
+  } else if(ts.status==='paused'){
+    ts.totalPaused+=Date.now()-ts.pauseStart;
+    ts.pauseStart=null; ts.status='running';
+    clearInterval(_iv); _iv=setInterval(refreshDisplay,1000); refreshDisplay();
+  }
+  saveTS(); applyUI(ts.status);
+}
 
-            // Motivational Logic
-            // WHY: Converts ms to hours for conditional checks. QOL: Directly implements your requested tier system.
-            let todayHours = todayMs / (1000 * 60 * 60);
-            let statusEl = document.getElementById('daily-status');
-            
-            if (todayHours < 5) {
-                statusEl.innerText = "Dusht & Paapi";
-                statusEl.style.color = "#f44336"; // Red
-            } else if (todayHours >= 5 && todayHours < 8) {
-                statusEl.innerText = "Good. Keep Going.";
-                statusEl.style.color = "#ffc107"; // Yellow
-            } else if (todayHours >= 8 && todayHours < 11) {
-                statusEl.innerText = "Very good. But need more.";
-                statusEl.style.color = "#4caf50"; // Green
-            } else {
-                statusEl.innerText = "Ranker!";
-                statusEl.style.color = "#00bcd4"; // Cyan/Diamond
-            }
-        }
+/* ─── STOP ────────────────────────────────────────────────────── */
+const KUDOS=[
+  "Shri Ji ki kripa se aaj ka session poora hua. \u2014 Radha Rani dekh rahi hain.",
+  "Har pal unki kripa thi. Ye waqt unka tha, unhe diya \u2014 bahut achha kiya.",
+  "Tu nimit tha, kaam Shri Ji ka tha. Aaj bhi unhi ne kiya.",
+  "Teri mehnat bhi unki, tera result bhi unka \u2014 bas naam le aur so ja.",
+  "Ek aur session \u2014 ek aur kripa. Jai Shri Radhe.",
+  "Jo tu nahi kar sakta tha, Shri Ji ne karaya. Shukriya unka.",
+  "Ye session Shri Ji ke charnon mein samarpit \u2014 ab nischint raho.",
+  "Roz ek kadam \u2014 Shri Ji baaki sambhalti hain. Aaj ka kadam uthaya.",
+  "Unki yaad mein ki gayi padhai kabhi vyarth nahi jaati.",
+];
+function timerStop(){
+  if(ts.status==='idle')return;
+  const endTs=Date.now(), dur=elapsed(), startTs=ts.sessionStart;
 
-        // --- GATE COUNTDOWN LOGIC ---
-        
-        // WHY: Dedicated countdown function. QOL: Reminds you of the ultimate deadline every single day.
-        function updateGateCountdown() {
-            const targetDate = new Date('February 1, 2027 00:00:00').getTime();
-            const now = new Date().getTime();
-            const diff = targetDate - now;
+  const kudos=KUDOS[Math.floor(Math.random()*KUDOS.length)];
+  document.getElementById('sc-kudos').textContent='\u201C'+kudos+'\u201D';
+  document.getElementById('sc-dur').textContent=fmtDur(dur);
+  document.getElementById('sc-body').textContent=
+    fmtT(startTs)+'\u2009\u2013\u2009'+fmtT(endTs);
+  document.getElementById('scard').classList.add('show');
 
-            if (diff <= 0) {
-                document.getElementById('gate-countdown').innerText = "IT'S EXAM DAY!";
-                return;
-            }
+  // Only persist sessions longer than 30 seconds (avoids accidental clicks)
+  if(dur>=30000){
+    const arr=loadSessions();
+    arr.push({date:dk(startTs),startTs,endTs,duration:dur});
+    localStorage.setItem(KEY_SESSIONS,JSON.stringify(arr));
+  }
 
-            // WHY: Math.floor rounding. QOL: Standardizes remaining time into readable chunks.
-            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  // Full reset
+  ts={status:'idle',sessionStart:null,pauseStart:null,totalPaused:0};
+  clearInterval(_iv);
+  localStorage.removeItem(KEY_TIMER);
+  document.getElementById('timer').textContent='00:00:00';
+  document.getElementById('tmeta').textContent='\u00a0';
+  document.title='GATE 2027 \u00B7 Shriyash'; // reset tab title
+  _breakShown=false; // reset break reminder for next session
+  dismissBreak();
+  applyUI('idle');
+  renderLog();
+}
 
-            document.getElementById('gate-countdown').innerText = `${days} Days, ${hours} Hours, ${minutes} Mins`;
-        }
+/* ─── SESSION STORAGE ─────────────────────────────────────────── */
+function loadSessions(){
+  try{return JSON.parse(localStorage.getItem(KEY_SESSIONS))||[];}
+  catch(e){return[];}
+}
 
-        // --- QUOTE ROTATION LOGIC ---
-        
-        // WHY: Random quote picker. QOL: Provides fresh spiritual/motivational context every few minutes so you don't go numb to a static string.
-        function rotateQuote() {
-            const randomIndex = Math.floor(Math.random() * quotes.length);
-            quoteEl.innerText = quotes[randomIndex];
-        }
+/* ─── STREAK ──────────────────────────────────────────────────── */
+/*
+   Counts consecutive days (ending today or yesterday) with ≥1 session.
+   If today has study: count from today backward.
+   If today has no study yet: count from yesterday backward.
+   Safety cap: 730 iterations (2 years max).
+*/
+function calcStreak(byDay){
+  const cur=new Date();
+  if(!byDay[dk(cur.getTime())])cur.setDate(cur.getDate()-1);
+  let streak=0;
+  for(let i=0;i<730;i++){
+    if(!byDay[dk(cur.getTime())])break;
+    streak++; cur.setDate(cur.getDate()-1);
+  }
+  return streak;
+}
 
-        // --- INITIALIZATION ---
-        
-        // WHY: Run these immediately on page load. QOL: Ensures the dashboard is populated with accurate data the millisecond you open the tab.
-        updateGateCountdown();
-        rotateQuote();
-        updateStats();
-        
-        // WHY: Set intervals for background updates. QOL: Keeps the countdown and quotes fresh even if you leave the tab open for 14 hours.
-        setInterval(updateGateCountdown, 60000); // Update countdown every minute
-        setInterval(rotateQuote, 300000); // Change quote every 5 minutes
+/* ─── RENDER LOG ──────────────────────────────────────────────── */
+function renderLog(){
+  const sessions=loadSessions();
+  const today=dk();
+  let todayMs=0,weekMs=0,monthMs=0,allTime=0;
+  let todaySessions=[];
+  const byDay={}, monthDays=new Set();
 
-        // WHY: Tab visibility listener. QOL: If the browser massively throttles JS in the background, this forces an immediate UI sync the exact moment you click back into the tab.
-        document.addEventListener('visibilitychange', () => {
-            if (!document.hidden) {
-                if (isRunning) updateDisplay();
-                updateStats(); // Catch up on any day rollovers
-            }
-        });
+  sessions.forEach(s=>{
+    const key=s.date||dk(s.startTs);
+    allTime+=s.duration;
+    byDay[key]=(byDay[key]||0)+s.duration;
+    if(key===today){todayMs+=s.duration;todaySessions.push(s);}
+    if(inWeek(s.startTs)) weekMs+=s.duration;
+    if(inMonth(s.startTs)){monthMs+=s.duration;monthDays.add(key);}
+  });
 
-    </script>
+  // Average = total month ms / number of days studied (not calendar days)
+  const avgMs=monthDays.size>0?monthMs/monthDays.size:0;
+  const streak=calcStreak(byDay);
+
+  document.getElementById('s-today').textContent  =fmtHM(todayMs);
+  document.getElementById('s-week').textContent   =fmtHM(weekMs);
+  document.getElementById('s-month').textContent  =fmtHM(monthMs);
+  document.getElementById('s-avg').textContent    =fmtHM(avgMs);
+  document.getElementById('s-streak').textContent =streak+(streak===1?'\u202Fday':'\u202Fdays');
+  document.getElementById('s-alltime').textContent=fmtHM(allTime);
+
+  // Status badge — honest daily accountability
+  const hrs=todayMs/3600000;
+  const badge=document.getElementById('badge');
+  if(hrs>=11){badge.textContent='Ranker! \uD83C\uDFC6';badge.className='badge great';}
+  else if(hrs>=8){badge.textContent='Very good. But need more.';badge.className='badge good';}
+  else if(hrs>=5){badge.textContent='Good. Keep Going.';badge.className='badge ok';}
+  else{badge.textContent='Dusht & Paapi \uD83D\uDE24';badge.className='badge bad';}
+
+  // Today's sessions list, newest first
+  const listEl=document.getElementById('log-list');
+  if(!todaySessions.length){
+    listEl.innerHTML='<div class="log-empty">No sessions yet.<br>Begin your sadhana.</div>';
+    return;
+  }
+  listEl.innerHTML=todaySessions.slice().reverse().map(s=>
+    `<div class="log-row">
+      <span class="log-time">${fmtT(s.startTs)}\u2009\u2013\u2009${fmtT(s.endTs)}</span>
+      <span class="log-dur">${fmtDur(s.duration)}</span>
+    </div>`
+  ).join('');
+  updateGoalBar();
+}
+
+/* ─── DAILY GOAL BAR ──────────────────────────────────────────── */
+/*
+   Goal = 8 hours/day. Bar fills as today's total climbs.
+   Updates every second while running via refreshDisplay.
+   Why: a filling bar is one of the most proven motivation mechanisms.
+*/
+const GOAL_MS = 11 * 3600000;
+function updateGoalBar(){
+  const sessions=loadSessions();
+  const today=dk();
+  let todayMs=0;
+  sessions.forEach(s=>{ if((s.date||dk(s.startTs))===today) todayMs+=s.duration; });
+  // Add live running session if active
+  if(ts.status==='running'||ts.status==='paused') todayMs+=elapsed();
+  const pct=Math.min(100,Math.round(todayMs/GOAL_MS*100));
+  const fill=document.getElementById('goal-fill');
+  const pctEl=document.getElementById('goal-pct');
+  if(!fill||!pctEl)return;
+  fill.style.width=pct+'%';
+  fill.classList.toggle('done',pct>=100);
+  pctEl.textContent=pct+'%';
+  pctEl.style.color=pct>=100?'#60c478':pct>=60?'var(--gold)':'var(--gold-dim)';
+}
+
+/* ─── BREAK REMINDER ──────────────────────────────────────────── */
+/*
+   After 90 continuous minutes, show a gentle toast.
+   Fires once per session — dismissed state resets on Stop/Start.
+   Why: research shows 90-min ultradian cycles; a break boosts retention.
+*/
+let _breakShown=false;
+const BREAK_MS=90*60*1000;
+function checkBreakReminder(){
+  if(_breakShown||ts.status!=='running') return;
+  if(elapsed()>=BREAK_MS){
+    _breakShown=true;
+    document.getElementById('break-toast').classList.add('show');
+    // Auto-dismiss after 12 seconds so it never blocks work
+    setTimeout(dismissBreak,12000);
+  }
+}
+function dismissBreak(){
+  document.getElementById('break-toast').classList.remove('show');
+}
+
+/* ─── KEYBOARD SHORTCUTS ──────────────────────────────────────── */
+/*
+   Space  → Start if idle, Pause/Resume if active
+   Escape → Stop (only if session is active — prevents accidental stops)
+   Why: hands on keyboard while studying = zero friction to control timer.
+   Guard: ignore if focus is on an input element.
+*/
+document.addEventListener('keydown', e=>{
+  if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA') return;
+  if(e.code==='Space'){
+    e.preventDefault();
+    if(ts.status==='idle') timerStart();
+    else timerPause();
+  } else if(e.code==='Escape'){
+    if(ts.status!=='idle') timerStop();
+  }
+});
+
+/* ─── BACKGROUND TAB ──────────────────────────────────────────── */
+/*
+   When switching back from a lecture tab, Chrome may throttle
+   setInterval for up to 1 minute. visibilitychange catches the
+   return and immediately snaps the display to the correct time.
+   The underlying elapsed() is always correct since it uses Date.now().
+*/
+document.addEventListener('visibilitychange',()=>{
+  if(!document.hidden&&ts.status==='running')refreshDisplay();
+});
+
+/* ─── BOOT ────────────────────────────────────────────────────── */
+loadTS();
+
+if(ts.status==='running'){
+  document.getElementById('tmeta').textContent='Started at\u202F'+fmtT(ts.sessionStart);
+  clearInterval(_iv); _iv=setInterval(refreshDisplay,1000); refreshDisplay();
+  applyUI('running');
+} else if(ts.status==='paused'){
+  document.getElementById('tmeta').textContent='Started at\u202F'+fmtT(ts.sessionStart);
+  refreshDisplay(); applyUI('paused');
+} else {
+  applyUI('idle');
+}
+
+renderLog();
+</script>
 </body>
 </html>
