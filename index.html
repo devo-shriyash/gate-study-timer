@@ -572,9 +572,8 @@
     }
 
     .log-list {
-      flex: 1;
+      max-height: 136px; /* exactly 4 rows × ~34px — no excess space */
       overflow-y: auto;
-      min-height: 0;
       scrollbar-width: thin;
       scrollbar-color: rgba(196,162,70,0.12) transparent;
     }
@@ -615,6 +614,165 @@
       padding: 18px 0;
       line-height: 1.6;
     }
+    /* ── "RIGHT NOW" schedule block ─────────────────────────────
+       Live indicator of current schedule block. Updates every 30s.
+       Study blocks glow gold; seva/break blocks are dim.
+       Most useful feature for staying on the daily schedule.
+    */
+    .now-sep {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(196,162,70,0.25), transparent);
+      margin: 9px 0 9px;
+    }
+    .now-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 9px 13px 8px;
+      margin-bottom: 8px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.4s;
+    }
+    .now-wrap.study-block {
+      border-color: rgba(196,162,70,0.28);
+      background: linear-gradient(135deg, rgba(196,162,70,0.04), var(--surface));
+    }
+    /* Gold top shimmer on study blocks */
+    .now-wrap.study-block::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(196,162,70,0.45), transparent);
+    }
+    .now-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .now-label {
+      font-size: 0.55rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+    .now-block-name {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-sub);
+      line-height: 1.3;
+      margin-bottom: 5px;
+    }
+    .now-wrap.study-block .now-block-name {
+      color: var(--gold);
+    }
+    .now-bottom {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 5px;
+    }
+    .now-time-left {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      font-weight: 500;
+      color: var(--text-dim);
+      font-variant-numeric: tabular-nums;
+    }
+    .now-wrap.study-block .now-time-left { color: var(--gold-dim); }
+    .now-next {
+      font-size: 0.5rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      opacity: 0.7;
+    }
+    .now-progress {
+      height: 2px;
+      background: rgba(196,162,70,0.07);
+      border-radius: 1px;
+      overflow: hidden;
+    }
+    .now-progress-fill {
+      height: 100%;
+      background: rgba(196,162,70,0.25);
+      border-radius: 1px;
+      transition: width 1s linear;
+    }
+    .now-wrap.study-block .now-progress-fill {
+      background: linear-gradient(90deg, var(--gold-dim), var(--gold));
+    }
+
+    /* ── 7-Day Heatmap ───────────────────────────────────────────
+       Mon–Sun boxes for current week.
+       Fill = % of daily goal achieved. Turns gold at 100%.
+       Shows consistency at a glance — the most honest mirror.
+    */
+    .heat-hdr {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .heat-label {
+      font-size: 0.55rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+    .heat-week-total {
+      font-family: var(--mono);
+      font-size: 0.55rem;
+      color: var(--gold-dim);
+    }
+    .heatmap {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+      margin-bottom: 3px;
+    }
+    .heat-day {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .heat-box {
+      width: 100%;
+      aspect-ratio: 1;
+      border-radius: 2px;
+      background: rgba(196,162,70,0.05);
+      border: 1px solid rgba(196,162,70,0.07);
+      position: relative;
+      overflow: hidden;
+      transition: background 0.4s, border-color 0.4s;
+    }
+    /* Today indicator — ring */
+    .heat-box.today {
+      border-color: rgba(196,162,70,0.35);
+    }
+    .heat-fill {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      background: linear-gradient(180deg, rgba(196,162,70,0.5), rgba(196,162,70,0.2));
+      transition: height 0.6s ease;
+    }
+    .heat-fill.full {
+      background: linear-gradient(180deg, var(--gold), var(--gold-dim));
+    }
+    .heat-day-lbl {
+      font-size: 0.44rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+    .heat-day-lbl.today { color: var(--gold-dim); }
+
     /* ── Daily goal progress bar ─────────────────────────────────
        Shows progress toward 11-hour daily goal.
        Thin bar with fill + percentage — instant visual feedback.
@@ -747,6 +905,133 @@
       padding: 0;
     }
     .bt-dismiss:hover { color: var(--text-sub); }
+    /* ── Data Export Panel ───────────────────────────────────────
+       Slide-up panel from the bottom of the right panel.
+       Three options: CSV (spreadsheet), JSON (backup), Clear data.
+    */
+    .export-btn {
+      font-family: var(--font);
+      font-size: 0.5rem;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--gold-dim);
+      background: none;
+      border: 1px solid rgba(196,162,70,0.12);
+      border-radius: 2px;
+      padding: 3px 8px;
+      cursor: pointer;
+      transition: color 0.2s, border-color 0.2s;
+      white-space: nowrap;
+    }
+    .export-btn:hover { color: var(--gold); border-color: rgba(196,162,70,0.3); }
+
+    .export-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(6,6,13,0.82);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+      backdrop-filter: blur(4px);
+    }
+    .export-modal.open { opacity: 1; pointer-events: auto; }
+
+    .export-box {
+      background: #0e0e1c;
+      border: 1px solid rgba(196,162,70,0.2);
+      border-radius: 5px;
+      padding: 28px 32px;
+      min-width: 340px;
+      max-width: 420px;
+      position: relative;
+      transform: translateY(12px);
+      transition: transform 0.3s;
+    }
+    .export-modal.open .export-box { transform: translateY(0); }
+
+    .export-box::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(196,162,70,0.5), transparent);
+    }
+
+    .exp-title {
+      font-size: 0.58rem;
+      font-weight: 700;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--gold-dim);
+      margin-bottom: 6px;
+    }
+    .exp-sub {
+      font-size: 0.72rem;
+      font-weight: 300;
+      color: var(--text-dim);
+      margin-bottom: 22px;
+      line-height: 1.5;
+    }
+    .exp-row {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .exp-option {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 12px 16px;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      text-align: left;
+      font-family: var(--font);
+      width: 100%;
+    }
+    .exp-option:hover { border-color: rgba(196,162,70,0.3); background: rgba(196,162,70,0.04); }
+    .exp-option-title {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 3px;
+    }
+    .exp-option-desc {
+      font-size: 0.62rem;
+      font-weight: 400;
+      color: var(--text-sub);
+      line-height: 1.4;
+    }
+    .exp-option.danger { border-color: rgba(184,82,72,0.18); }
+    .exp-option.danger:hover { border-color: rgba(184,82,72,0.45); background: rgba(184,82,72,0.04); }
+    .exp-option.danger .exp-option-title { color: rgba(184,82,72,0.75); }
+
+    .exp-close {
+      font-family: var(--font);
+      font-size: 0.52rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      width: 100%;
+      text-align: center;
+    }
+    .exp-close:hover { color: var(--text-sub); }
+
+    .exp-stats {
+      font-size: 0.58rem;
+      color: var(--text-dim);
+      margin-bottom: 18px;
+      font-family: var(--mono);
+    }
   </style>
 </head>
 <body>
@@ -839,12 +1124,15 @@
     <!-- Right: Study Log -->
     <div class="right">
 
-      <div class="panel-lbl">Study Log</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div class="panel-lbl" style="margin-bottom:0">Study Log</div>
+        <button class="export-btn" onclick="openExport()" title="Export or backup your study data">⬇ Export</button>
+      </div>
 
       <!-- Daily goal progress bar — 11h target, instant visual motivation -->
       <div class="goal-wrap">
         <div class="goal-header">
-          <span class="goal-label">Daily Goal &nbsp;·&nbsp; 11h</span>
+          <span class="goal-label">Daily Goal &nbsp;·&nbsp; 10h 40m</span>
           <span class="goal-pct" id="goal-pct">0%</span>
         </div>
         <div class="goal-bar"><div class="goal-fill" id="goal-fill"></div></div>
@@ -867,7 +1155,57 @@
         <div class="log-empty">No sessions yet.<br>Begin your sadhana.</div>
       </div>
 
+      <!-- "RIGHT NOW" — live schedule block indicator -->
+      <div class="now-sep"></div>
+      <div class="log-hdr" style="margin-bottom:6px">Right Now</div>
+      <div class="now-wrap" id="now-wrap">
+        <div class="now-top">
+          <span class="now-label" id="now-label">Loading…</span>
+        </div>
+        <div class="now-block-name" id="now-block-name">—</div>
+        <div class="now-bottom">
+          <span class="now-time-left" id="now-time-left">—</span>
+          <span class="now-next" id="now-next"></span>
+        </div>
+        <div class="now-progress"><div class="now-progress-fill" id="now-progress-fill" style="width:0%"></div></div>
+      </div>
+
+      <!-- 7-Day Heatmap -->
+      <div class="heat-hdr">
+        <span class="heat-label">This Week</span>
+        <span class="heat-week-total" id="heat-week-total"></span>
+      </div>
+      <div class="heatmap" id="heatmap"></div>
+
     </div>
+  </div>
+</div>
+
+<!-- Export modal -->
+<div class="export-modal" id="export-modal" role="dialog" aria-modal="true">
+  <div class="export-box">
+    <div class="exp-title">Export Study Data</div>
+    <div class="exp-sub" id="exp-sub">Loading…</div>
+    <div class="exp-stats" id="exp-stats"></div>
+    <div class="exp-row">
+      <button class="exp-option" onclick="exportCSV()">
+        <div class="exp-option-title">📊 Download as CSV</div>
+        <div class="exp-option-desc">Opens in Excel, Google Sheets. One row per session with date, start time, end time, and duration. Best for analysis.</div>
+      </button>
+      <button class="exp-option" onclick="exportJSON()">
+        <div class="exp-option-title">💾 Download as JSON</div>
+        <div class="exp-option-desc">Full data backup. Can be restored later. Keep this safe — it's your complete study history.</div>
+      </button>
+      <button class="exp-option" onclick="copyText()">
+        <div class="exp-option-title">📋 Copy Summary Text</div>
+        <div class="exp-option-desc">Copies a clean plain-text summary — total time, streak, daily average — to your clipboard.</div>
+      </button>
+      <button class="exp-option danger" onclick="confirmClear()">
+        <div class="exp-option-title">🗑 Clear All Data</div>
+        <div class="exp-option-desc">Permanently deletes all session history. Download a backup first. Cannot be undone.</div>
+      </button>
+    </div>
+    <button class="exp-close" onclick="closeExport()">Close</button>
   </div>
 </div>
 
@@ -1052,7 +1390,9 @@ function dk(ts){
 function inWeek(ts){
   const now=new Date(), dow=(now.getDay()+6)%7;
   const mon=new Date(now); mon.setDate(now.getDate()-dow); mon.setHours(0,0,0,0);
-  return new Date(ts)>=mon;
+  const nextMon=new Date(mon); nextMon.setDate(mon.getDate()+7);
+  const d=new Date(ts);
+  return d>=mon&&d<nextMon;
 }
 
 /* Is a ms timestamp in the current calendar month? */
@@ -1106,10 +1446,12 @@ function elapsed(){
 function refreshDisplay(){
   const t=fmtDur(elapsed());
   document.getElementById('timer').textContent=t;
-  // Live timer in tab title — critical for lecture-tab users
   if(ts.status==='running') document.title='\u25B6\uFE0E '+t+' \u00B7 GATE 2027';
   else if(ts.status==='paused') document.title='\u23F8\uFE0E '+t+' \u00B7 GATE 2027';
-  updateGoalBar();
+  // Cache session read once — both goal bar and heatmap share it
+  const _sessions=loadSessions();
+  updateGoalBar(_sessions);
+  renderHeatmap(_sessions);
   checkBreakReminder();
 }
 
@@ -1255,13 +1597,16 @@ function renderLog(){
   // Status badge — honest daily accountability
   const hrs=todayMs/3600000;
   const badge=document.getElementById('badge');
-  if(hrs>=11){badge.textContent='Ranker! \uD83C\uDFC6';badge.className='badge great';}
-  else if(hrs>=8){badge.textContent='Very good. But need more.';badge.className='badge good';}
-  else if(hrs>=5){badge.textContent='Good. Keep Going.';badge.className='badge ok';}
+  if(hrs>=9.5){badge.textContent='Ranker! \uD83C\uDFC6';badge.className='badge great';}
+  else if(hrs>=7){badge.textContent='Very good. But need more.';badge.className='badge good';}
+  else if(hrs>=4){badge.textContent='Good. Keep Going.';badge.className='badge ok';}
   else{badge.textContent='Dusht & Paapi \uD83D\uDE24';badge.className='badge bad';}
 
   // Today's sessions list, newest first
   const listEl=document.getElementById('log-list');
+  // Update goal bar and heatmap regardless of whether there are sessions
+  updateGoalBar();
+  renderHeatmap();
   if(!todaySessions.length){
     listEl.innerHTML='<div class="log-empty">No sessions yet.<br>Begin your sadhana.</div>';
     return;
@@ -1272,18 +1617,17 @@ function renderLog(){
       <span class="log-dur">${fmtDur(s.duration)}</span>
     </div>`
   ).join('');
-  updateGoalBar();
 }
 
 /* ─── DAILY GOAL BAR ──────────────────────────────────────────── */
 /*
-   Goal = 8 hours/day. Bar fills as today's total climbs.
+   Goal = 10h 40m/day (exact study window from schedule).
+   Bar fills as today's total climbs. Turns green at 100%.
    Updates every second while running via refreshDisplay.
-   Why: a filling bar is one of the most proven motivation mechanisms.
 */
-const GOAL_MS = 11 * 3600000;
-function updateGoalBar(){
-  const sessions=loadSessions();
+const GOAL_MS = 10 * 3600000 + 40 * 60000; // 10h 40m — max study time per schedule
+function updateGoalBar(sessions){
+  sessions=sessions||loadSessions();
   const today=dk();
   let todayMs=0;
   sessions.forEach(s=>{ if((s.date||dk(s.startTs))===today) todayMs+=s.duration; });
@@ -1306,18 +1650,139 @@ function updateGoalBar(){
    Why: research shows 90-min ultradian cycles; a break boosts retention.
 */
 let _breakShown=false;
+let _breakTimer=null;
 const BREAK_MS=90*60*1000;
 function checkBreakReminder(){
   if(_breakShown||ts.status!=='running') return;
   if(elapsed()>=BREAK_MS){
     _breakShown=true;
     document.getElementById('break-toast').classList.add('show');
-    // Auto-dismiss after 12 seconds so it never blocks work
-    setTimeout(dismissBreak,12000);
+    // Auto-dismiss after 12 seconds — clear any existing timer first
+    if(_breakTimer) clearTimeout(_breakTimer);
+    _breakTimer=setTimeout(dismissBreak,12000);
   }
 }
 function dismissBreak(){
+  if(_breakTimer){clearTimeout(_breakTimer);_breakTimer=null;}
   document.getElementById('break-toast').classList.remove('show');
+}
+
+/* ─── DATA EXPORT ─────────────────────────────────────────────── */
+function openExport(){
+  const sessions=loadSessions();
+  const total=sessions.reduce((a,s)=>a+s.duration,0);
+  const days=new Set(sessions.map(s=>s.date||dk(s.startTs))).size;
+  document.getElementById('exp-sub').textContent=
+    sessions.length+' session'+(sessions.length===1?'':'s')+' across '+days+' day'+(days===1?'':'s');
+  document.getElementById('exp-stats').textContent=
+    'Total studied: '+fmtHM(total)+
+    '  ·  Avg/day: '+fmtHM(days>0?total/days:0);
+  document.getElementById('export-modal').classList.add('open');
+}
+function closeExport(){
+  document.getElementById('export-modal').classList.remove('open');
+}
+// Close on backdrop click
+document.addEventListener('click',e=>{
+  const m=document.getElementById('export-modal');
+  if(e.target===m) closeExport();
+});
+// Close on Escape (only when export modal is open, don't trigger timerStop)
+document.addEventListener('keydown',e=>{
+  if(e.code==='Escape'&&document.getElementById('export-modal').classList.contains('open')){
+    e.stopImmediatePropagation();
+    closeExport();
+  }
+},{capture:true});
+
+function exportCSV(){
+  const sessions=loadSessions();
+  if(!sessions.length){alert('No sessions to export yet.');return;}
+  const header='Date,Start Time,End Time,Duration (HH:MM:SS),Duration (minutes)';
+  const rows=sessions.map(s=>{
+    const d=new Date(s.startTs);
+    const date=d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+    const durMins=Math.round(s.duration/60000);
+    return [date,fmtT(s.startTs),fmtT(s.endTs),fmtDur(s.duration),durMins].join(',');
+  });
+  const csv=[header,...rows].join('\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download='gate-study-log-'+dk()+'.csv';
+  a.click(); URL.revokeObjectURL(url);
+  closeExport();
+}
+
+function exportJSON(){
+  const sessions=loadSessions();
+  if(!sessions.length){alert('No sessions to export yet.');return;}
+  const payload={
+    exportedAt:new Date().toISOString(),
+    totalSessions:sessions.length,
+    totalMs:sessions.reduce((a,s)=>a+s.duration,0),
+    sessions
+  };
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download='gate-study-backup-'+dk()+'.json';
+  a.click(); URL.revokeObjectURL(url);
+  closeExport();
+}
+
+function copyText(){
+  const sessions=loadSessions();
+  const total=sessions.reduce((a,s)=>a+s.duration,0);
+  const days=new Set(sessions.map(s=>s.date||dk(s.startTs))).size;
+  const byDay={};
+  sessions.forEach(s=>{const k=s.date||dk(s.startTs);byDay[k]=(byDay[k]||0)+s.duration;});
+  const streak=calcStreak(byDay);
+  const allTime=fmtHM(total);
+  const avgDay=fmtHM(days>0?total/days:0);
+  const todayMs=byDay[dk()]||0;
+
+  const text=[
+    'GATE 2027 — Study Summary ('+new Date().toDateString()+')',
+    '─────────────────────────────',
+    'Today         : '+fmtHM(todayMs),
+    'All-Time      : '+allTime,
+    'Days Studied  : '+days,
+    'Avg / Day     : '+avgDay,
+    'Current Streak: '+streak+(streak===1?' day':' days'),
+    '─────────────────────────────',
+    'Exported from GATE 2027 Study Timer — Jai Shri Radhe 🙏'
+  ].join('\n');
+
+  navigator.clipboard.writeText(text)
+    .then(()=>{
+      const btn=document.querySelector('.exp-option:nth-child(3) .exp-option-title');
+      const orig=btn.textContent;
+      btn.textContent='✅ Copied!';
+      setTimeout(()=>{btn.textContent=orig;},2000);
+    })
+    .catch(()=>alert('Copy failed — please copy manually:\n\n'+text));
+}
+
+function confirmClear(){
+  const sessions=loadSessions();
+  if(!sessions.length){alert('Nothing to clear.');return;}
+  const ok=confirm(
+    'Are you sure you want to delete ALL '+sessions.length+' sessions?\n\n'+
+    'Download a backup first — this cannot be undone.'
+  );
+  if(ok){
+    localStorage.removeItem(KEY_SESSIONS);
+    localStorage.removeItem(KEY_TIMER);
+    ts={status:'idle',sessionStart:null,pauseStart:null,totalPaused:0};
+    clearInterval(_iv);
+    document.getElementById('timer').textContent='00:00:00';
+    document.getElementById('tmeta').textContent='\u00a0';
+    document.title='GATE 2027 \u00B7 Shriyash';
+    applyUI('idle');
+    renderLog();
+    closeExport();
+  }
 }
 
 /* ─── KEYBOARD SHORTCUTS ──────────────────────────────────────── */
@@ -1338,6 +1803,121 @@ document.addEventListener('keydown', e=>{
   }
 });
 
+/* ─── SCHEDULE / "RIGHT NOW" ──────────────────────────────────── */
+/*
+   Schedule is stored as blocks: [startMinutes, endMinutes, label, isStudy]
+   Times are minutes from midnight (0 = 12:00 AM).
+   Covers the full 24h. "Sleep" fills the gap before 3 AM.
+*/
+const SCHEDULE = [
+  [  0,  180, 'Sleep',                          false],
+  [180,  190, '🌅 Rise Seva',                   false],
+  [190,  300, '📖 Study Block I',               true ],
+  [300,  310, '🪔 Mangala',                     false],
+  [310,  375, '🧘 Exercise · Yoga · Bath',      false],
+  [375,  480, '🌸 Morning Seva',                false],
+  [480,  720, '📖 Study Block II',              true ],
+  [720,  780, '🍽 Lunch Break',                 false],
+  [780,  900, '📖 Study Block III',             true ],
+  [900,  910, '🪔 Uthapan Seva',               false],
+  [910, 1080, '📖 Study Block IV',              true ],
+  [1080,1110, '🌆 Sandhya Seva',               false],
+  [1110,1320, '🙏 Spiritual Session',           false],
+  [1320,1440, 'Sleep',                          false],
+];
+
+function fmtMinLeft(mins){
+  const h=Math.floor(mins/60), m=mins%60;
+  if(h>0&&m>0) return h+'h '+m+'m left';
+  if(h>0) return h+'h left';
+  return m+'m left';
+}
+
+function tickNow(){
+  const now=new Date();
+  const cur=now.getHours()*60+now.getMinutes();
+  let block=SCHEDULE[SCHEDULE.length-1];
+  for(const b of SCHEDULE){
+    if(cur>=b[0]&&cur<b[1]){block=b;break;}
+  }
+  const [start,end,name,isStudy]=block;
+  const dur=end-start;
+  const blockElapsed=cur-start;
+  const minsLeft=end-cur;
+  const pct=Math.min(100,Math.round(blockElapsed/dur*100));
+
+  // Find next block name
+  const idx=SCHEDULE.indexOf(block);
+  const next=SCHEDULE[idx+1]||SCHEDULE[0];
+
+  const wrap=document.getElementById('now-wrap');
+  wrap.className='now-wrap'+(isStudy?' study-block':'');
+
+  document.getElementById('now-label').textContent=
+    isStudy?'Study Block · On Schedule':'Schedule Block';
+  document.getElementById('now-block-name').textContent=name;
+  document.getElementById('now-time-left').textContent=fmtMinLeft(minsLeft);
+  document.getElementById('now-next').textContent='Next: '+next[2];
+  document.getElementById('now-progress-fill').style.width=pct+'%';
+}
+tickNow();
+setInterval(tickNow, 30000); // refresh every 30s
+
+/* ─── 7-DAY HEATMAP ───────────────────────────────────────────── */
+/*
+   Renders Mon–Sun for the current week.
+   Each box fills bottom-up proportional to goal % that day.
+   Today gets a gold border ring.
+*/
+const DAYS=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+function renderHeatmap(sessions){
+  sessions=sessions||loadSessions();
+  const now=new Date();
+  const todayStr=dk();
+
+  // Build study-ms per day-key map
+  const byDay={};
+  sessions.forEach(s=>{
+    const k=s.date||dk(s.startTs);
+    byDay[k]=(byDay[k]||0)+s.duration;
+  });
+  // Add live session to today
+  if(ts.status==='running'||ts.status==='paused'){
+    byDay[todayStr]=(byDay[todayStr]||0)+elapsed();
+  }
+
+  // Get Mon of current week
+  const dow=(now.getDay()+6)%7; // 0=Mon
+  const mon=new Date(now);
+  mon.setDate(now.getDate()-dow);
+  mon.setHours(0,0,0,0);
+
+  let weekMs=0;
+  const boxes=[];
+  for(let i=0;i<7;i++){
+    const d=new Date(mon); d.setDate(mon.getDate()+i);
+    const dkey=dk(d.getTime());
+    const ms=byDay[dkey]||0;
+    weekMs+=ms;
+    const pct=Math.min(100,ms/GOAL_MS*100);
+    const isToday=dkey===todayStr;
+    const isFuture=d>now&&!isToday;
+    boxes.push({label:DAYS[i],pct,isToday,isFuture,ms});
+  }
+
+  const container=document.getElementById('heatmap');
+  container.innerHTML=boxes.map(b=>`
+    <div class="heat-day">
+      <div class="heat-box${b.isToday?' today':''}">
+        ${!b.isFuture&&b.pct>0?`<div class="heat-fill${b.pct>=100?' full':''}" style="height:${b.pct}%"></div>`:''}
+      </div>
+      <span class="heat-day-lbl${b.isToday?' today':''}">${b.label}</span>
+    </div>`).join('');
+
+  document.getElementById('heat-week-total').textContent=
+    weekMs>0?fmtHM(weekMs):'';
+}
+
 /* ─── BACKGROUND TAB ──────────────────────────────────────────── */
 /*
    When switching back from a lecture tab, Chrome may throttle
@@ -1346,7 +1926,10 @@ document.addEventListener('keydown', e=>{
    The underlying elapsed() is always correct since it uses Date.now().
 */
 document.addEventListener('visibilitychange',()=>{
-  if(!document.hidden&&ts.status==='running')refreshDisplay();
+  if(!document.hidden){
+    if(ts.status==='running')refreshDisplay();
+    tickNow(); // Right Now block could be stale after background tab
+  }
 });
 
 /* ─── BOOT ────────────────────────────────────────────────────── */
@@ -1364,6 +1947,8 @@ if(ts.status==='running'){
 }
 
 renderLog();
+renderHeatmap();
+tickNow();
 </script>
 </body>
 </html>
