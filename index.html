@@ -1516,7 +1516,7 @@ function refreshDisplay(){
   document.getElementById('timer').textContent=t;
   if(ts.status==='running') document.title='\u25B6\uFE0E '+t+' \u00B7 GATE 2027';
   else if(ts.status==='paused') document.title='\u23F8\uFE0E '+t+' \u00B7 GATE 2027';
-  // Cache session read once — goal bar, heatmap, and adherence share it
+  // Load sessions once and share across all dependent updates to avoid 4× localStorage reads per tick
   const _sessions=loadSessions();
   updateGoalBar(_sessions);
   renderHeatmap(_sessions);
@@ -1683,10 +1683,10 @@ function renderLog(){
 
   // Today's sessions list, newest first
   const listEl=document.getElementById('log-list');
-  // Update goal bar, heatmap, and adherence regardless of whether there are sessions
-  updateGoalBar();
-  renderHeatmap();
-  updateAdherence();
+  // Update goal bar, heatmap, and adherence — pass already-loaded sessions to avoid extra localStorage reads
+  updateGoalBar(sessions);
+  renderHeatmap(sessions);
+  updateAdherence(sessions);
   if(!todaySessions.length){
     listEl.innerHTML='<div class="log-empty">No sessions yet.<br>Begin your sadhana.</div>';
     return;
@@ -1790,7 +1790,8 @@ function exportCSV(){
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
   a.href=url; a.download='gate-study-log-'+dk()+'.csv';
-  a.click(); URL.revokeObjectURL(url);
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 250);
   closeExport();
 }
 
@@ -1807,7 +1808,8 @@ function exportJSON(){
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
   a.href=url; a.download='gate-study-backup-'+dk()+'.json';
-  a.click(); URL.revokeObjectURL(url);
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 250);
   closeExport();
 }
 
@@ -2029,8 +2031,7 @@ if(ts.status==='running'){
 }
 
 renderLog();
-renderHeatmap();
-tickNow();
+// renderHeatmap and tickNow are already invoked inside renderLog() and at line 1945; no need to repeat.
 </script>
 </body>
 </html>
