@@ -1141,7 +1141,7 @@
         <div class="scard"><span class="sl">Today</span><span class="sv" id="s-today">0h 0m</span></div>
         <div class="scard"><span class="sl">This Week</span><span class="sv" id="s-week">0h 0m</span></div>
         <div class="scard"><span class="sl">This Month</span><span class="sv" id="s-month">0h 0m</span></div>
-        <div class="scard"><span class="sl">Daily Avg (studied days)</span><span class="sv" id="s-avg">0h 0m</span></div>
+        <div class="scard"><span class="sl">Daily Avg (all time)</span><span class="sv" id="s-avg">0h 0m</span></div>
         <div class="scard"><span class="sl">&#x1F525; Streak</span><span class="sv" id="s-streak">0 days</span></div>
         <div class="scard"><span class="sl">All-Time</span><span class="sv" id="s-alltime">0h 0m</span></div>
       </div>
@@ -1182,9 +1182,9 @@
 </div>
 
 <!-- Export modal -->
-<div class="export-modal" id="export-modal" role="dialog" aria-modal="true">
+<div class="export-modal" id="export-modal" role="dialog" aria-modal="true" aria-labelledby="exp-modal-title">
   <div class="export-box">
-    <div class="exp-title">Export Study Data</div>
+    <div class="exp-title" id="exp-modal-title">Export Study Data</div>
     <div class="exp-sub" id="exp-sub">Loading…</div>
     <div class="exp-stats" id="exp-stats"></div>
     <div class="exp-row">
@@ -1197,7 +1197,7 @@
         <div class="exp-option-desc">Full data backup. Can be restored later. Keep this safe — it's your complete study history.</div>
       </button>
       <button class="exp-option" onclick="copyText()">
-        <div class="exp-option-title">📋 Copy Summary Text</div>
+        <div class="exp-option-title" id="copy-btn-title">📋 Copy Summary Text</div>
         <div class="exp-option-desc">Copies a clean plain-text summary — total time, streak, daily average — to your clipboard.</div>
       </button>
       <button class="exp-option danger" onclick="confirmClear()">
@@ -1359,11 +1359,13 @@ nextQuote();
 setInterval(nextQuote,30000);
 
 /* ─── COUNTDOWN ───────────────────────────────────────────────── */
+let _cdIv=null;
 function tickCD(){
   const diff=GATE_DATE-Date.now();
   if(diff<=0){
     document.querySelector('.cd-units').innerHTML=
       '<span style="font-family:var(--mono);font-size:1.4rem;color:var(--gold-bright);letter-spacing:0.06em">Jai Shri Radhe — GATE Day!</span>';
+    if(_cdIv){clearInterval(_cdIv);_cdIv=null;}
     return;
   }
   const d=Math.floor(diff/86400000),
@@ -1375,29 +1377,29 @@ function tickCD(){
   document.getElementById('cd-m').textContent=pad(m);
   document.getElementById('cd-s').textContent=pad(s);
 }
-tickCD(); setInterval(tickCD,1000);
+tickCD(); _cdIv=setInterval(tickCD,1000);
 
 /* ─── HELPERS ─────────────────────────────────────────────────── */
 function pad(n){return String(n).padStart(2,'0');}
 
 /* "YYYY-MM-DD" from a ms timestamp (defaults to now) */
-function dk(ts){
-  const d=new Date(ts??Date.now());
+function dk(ms){
+  const d=new Date(ms??Date.now());
   return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
 }
 
 /* Is a ms timestamp in the current Mon–Sun week? */
-function inWeek(ts){
+function inWeek(ms){
   const now=new Date(), dow=(now.getDay()+6)%7;
   const mon=new Date(now); mon.setDate(now.getDate()-dow); mon.setHours(0,0,0,0);
   const nextMon=new Date(mon); nextMon.setDate(mon.getDate()+7);
-  const d=new Date(ts);
+  const d=new Date(ms);
   return d>=mon&&d<nextMon;
 }
 
 /* Is a ms timestamp in the current calendar month? */
-function inMonth(ts){
-  const n=new Date(),d=new Date(ts);
+function inMonth(ms){
+  const n=new Date(),d=new Date(ms);
   return d.getFullYear()===n.getFullYear()&&d.getMonth()===n.getMonth();
 }
 
@@ -1526,7 +1528,16 @@ function timerStop(){
   if(dur>=30000){
     const arr=loadSessions();
     arr.push({date:dk(startTs),startTs,endTs,duration:dur});
-    localStorage.setItem(KEY_SESSIONS,JSON.stringify(arr));
+    try{
+      localStorage.setItem(KEY_SESSIONS,JSON.stringify(arr));
+    }catch(e){
+      // Storage quota exceeded — warn user so data isn't silently lost
+      console.error('Storage quota exceeded:',e);
+      alert('⚠️ Storage full — this session could not be saved.\nPlease export your data and clear it to free up space.');
+    }
+  } else {
+    // Silently discard sessions under 30 seconds — update card to inform user
+    document.getElementById('sc-body').textContent='(Session under 30 seconds — not saved to log)';
   }
 
   // Full reset
@@ -1583,8 +1594,9 @@ function renderLog(){
     if(inMonth(s.startTs)){monthMs+=s.duration;monthDays.add(key);}
   });
 
-  // Average = total month ms / number of days studied (not calendar days)
-  const avgMs=monthDays.size>0?monthMs/monthDays.size:0;
+  // Average = all-time total / total unique days studied (across all time)
+  const allDays=new Set(sessions.map(s=>s.date||dk(s.startTs))).size;
+  const avgMs=allDays>0?allTime/allDays:0;
   const streak=calcStreak(byDay);
 
   document.getElementById('s-today').textContent  =fmtHM(todayMs);
@@ -1625,7 +1637,7 @@ function renderLog(){
    Bar fills as today's total climbs. Turns green at 100%.
    Updates every second while running via refreshDisplay.
 */
-const GOAL_MS = 10 * 3600000 + 40 * 60000; // 10h 40m — max study time per schedule
+const GOAL_MS = 10 * 3600000 + 40 * 60000; // 10h 40m — max study time per schedule (daily goal)
 function updateGoalBar(sessions){
   sessions=sessions||loadSessions();
   const today=dk();
@@ -1756,7 +1768,7 @@ function copyText(){
 
   navigator.clipboard.writeText(text)
     .then(()=>{
-      const btn=document.querySelector('.exp-option:nth-child(3) .exp-option-title');
+      const btn=document.getElementById('copy-btn-title');
       const orig=btn.textContent;
       btn.textContent='✅ Copied!';
       setTimeout(()=>{btn.textContent=orig;},2000);
@@ -1776,6 +1788,8 @@ function confirmClear(){
     localStorage.removeItem(KEY_TIMER);
     ts={status:'idle',sessionStart:null,pauseStart:null,totalPaused:0};
     clearInterval(_iv);
+    _breakShown=false;
+    dismissBreak();
     document.getElementById('timer').textContent='00:00:00';
     document.getElementById('tmeta').textContent='\u00a0';
     document.title='GATE 2027 \u00B7 Shriyash';
@@ -1927,7 +1941,7 @@ function renderHeatmap(sessions){
 */
 document.addEventListener('visibilitychange',()=>{
   if(!document.hidden){
-    if(ts.status==='running')refreshDisplay();
+    if(ts.status==='running'||ts.status==='paused')refreshDisplay();
     tickNow(); // Right Now block could be stale after background tab
   }
 });
