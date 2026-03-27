@@ -1144,6 +1144,7 @@
         <div class="scard"><span class="sl">Daily Avg (all time)</span><span class="sv" id="s-avg">0h 0m</span></div>
         <div class="scard"><span class="sl">&#x1F525; Streak</span><span class="sv" id="s-streak">0 days</span></div>
         <div class="scard"><span class="sl">All-Time</span><span class="sv" id="s-alltime">0h 0m</span></div>
+        <div class="scard"><span class="sl">📐 Schedule Adherence</span><span class="sv" id="s-adherence">—</span></div>
       </div>
 
       <div class="badge bad" id="badge">Dusht &amp; Paapi &#x1F624;</div>
@@ -1421,6 +1422,71 @@ function fmtHM(ms){
   return Math.floor(ms/3600000)+'h\u202F'+Math.floor((ms%3600000)/60000)+'m';
 }
 
+/* ─── SCHEDULE ADHERENCE ──────────────────────────────────────────
+   For a session [startTs, endTs], compute how many ms fell inside
+   official study blocks (isStudy=true in SCHEDULE).
+
+   Approach: map each block onto the wall-clock day of the session
+   using absolute ms timestamps, then intersect with [startTs,endTs].
+   Cross-midnight sessions are handled by checking both the start-day
+   and the end-day blocks, so the math stays exact.
+
+   Adherence % = adherent ms / total studied ms  (all-time).
+   This measures discipline: not just how much you study, but whether
+   you study when the Dincharya says you should.
+*/
+function computeAdherentMs(startTs, endTs){
+  // Determine midnight (00:00:00.000) for start day and end day
+  const s0=new Date(startTs); s0.setHours(0,0,0,0);
+  const e0=new Date(endTs);   e0.setHours(0,0,0,0);
+  const daysMs=[s0.getTime()];
+  // If the session crossed midnight, check next day's blocks too
+  if(e0.getTime()>s0.getTime()) daysMs.push(e0.getTime());
+
+  let adherentMs=0;
+  for(const dayMs of daysMs){
+    for(const [bStart,bEnd,,isStudy] of SCHEDULE){
+      if(!isStudy) continue;
+      const wsStart=dayMs+bStart*60000;
+      const wsEnd  =dayMs+bEnd  *60000;
+      const oStart =Math.max(startTs,wsStart);
+      const oEnd   =Math.min(endTs,  wsEnd);
+      if(oEnd>oStart) adherentMs+=oEnd-oStart;
+    }
+  }
+  return adherentMs;
+}
+
+function updateAdherence(sessions){
+  const el=document.getElementById('s-adherence');
+  if(!el) return;
+  sessions=sessions||loadSessions();
+
+  let totalMs=0, adherentMs=0;
+  sessions.forEach(s=>{
+    totalMs    +=s.duration;
+    adherentMs +=computeAdherentMs(s.startTs,s.endTs);
+  });
+
+  // Include the live session if the timer is running or paused.
+  // For running: use Date.now() as effective end (slight overcount of
+  //   pause time within blocks, negligible in practice).
+  // For paused: use pauseStart as effective end — no time is accruing.
+  if(ts.sessionStart){
+    const liveEnd=ts.status==='paused'?ts.pauseStart:Date.now();
+    const liveDur=elapsed();
+    if(liveDur>0){
+      totalMs    +=liveDur;
+      adherentMs +=computeAdherentMs(ts.sessionStart,liveEnd);
+    }
+  }
+
+  if(!totalMs){el.textContent='\u2014';el.style.color='';return;}
+  const pct=Math.min(100,Math.round(adherentMs/totalMs*100));
+  el.textContent=pct+'%';
+  el.style.color=pct>=80?'#60c478':pct>=60?'var(--gold)':'var(--gold-dim)';
+}
+
 /* ─── TIMER STATE ─────────────────────────────────────────────── */
 /*
    ACCURACY GUARANTEE:
@@ -1450,10 +1516,11 @@ function refreshDisplay(){
   document.getElementById('timer').textContent=t;
   if(ts.status==='running') document.title='\u25B6\uFE0E '+t+' \u00B7 GATE 2027';
   else if(ts.status==='paused') document.title='\u23F8\uFE0E '+t+' \u00B7 GATE 2027';
-  // Cache session read once — both goal bar and heatmap share it
+  // Cache session read once — goal bar, heatmap, and adherence share it
   const _sessions=loadSessions();
   updateGoalBar(_sessions);
   renderHeatmap(_sessions);
+  updateAdherence(_sessions);
   checkBreakReminder();
 }
 
@@ -1616,9 +1683,10 @@ function renderLog(){
 
   // Today's sessions list, newest first
   const listEl=document.getElementById('log-list');
-  // Update goal bar and heatmap regardless of whether there are sessions
+  // Update goal bar, heatmap, and adherence regardless of whether there are sessions
   updateGoalBar();
   renderHeatmap();
+  updateAdherence();
   if(!todaySessions.length){
     listEl.innerHTML='<div class="log-empty">No sessions yet.<br>Begin your sadhana.</div>';
     return;
