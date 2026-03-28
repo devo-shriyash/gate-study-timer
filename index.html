@@ -319,8 +319,19 @@
       transition: color 0.3s, opacity 0.3s;
     }
 
-    /* Paused state — dim the timer, strong visual signal to resume */
-    .timer-num.paused { color: var(--text-dim); opacity: 0.5; }
+    /* Paused state — blink the timer, clear signal that it's not running */
+    @keyframes timerBlink {
+      0%, 100% { opacity: 0.5; }
+      50%       { opacity: 0.12; }
+    }
+
+    .timer-num.paused {
+      color: var(--text-dim);
+      opacity: 0.5;
+      animation: timerBlink 1.1s ease-in-out infinite;
+      /* Disable transition so it doesn't fight the animation */
+      transition: color 0.3s;
+    }
 
     /* Breathing underline — only on when session is running */
     .timer-line {
@@ -535,25 +546,7 @@
       color: var(--gold-bright);
       font-variant-numeric: tabular-nums;
     }
-    /* Status badge */
-    .badge {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 8px 13px;
-      border-radius: 2px;
-      font-size: 0.74rem;
-      font-weight: 600;
-      letter-spacing: 0.03em;
-      border: 1px solid;
-      margin-bottom: 8px;
-      transition: all 0.4s;
-    }
-
-    .badge.bad   { border-color: rgba(184,82,72,0.3);  color: #c06058; background: rgba(184,82,72,0.05); }
-    .badge.ok    { border-color: rgba(78,148,96,0.3);  color: #60a870; background: rgba(78,148,96,0.05); }
-    .badge.good  { border-color: rgba(196,162,70,0.3); color: var(--gold); background: var(--gold-glow); }
-    .badge.great { border-color: rgba(196,162,70,0.6); color: var(--gold-bright); background: rgba(196,162,70,0.09); }
+    /* Status badge — DEAD CSS removed (element no longer exists) */
 
     /* Today's sessions list */
     .log-sep {
@@ -1573,71 +1566,6 @@ function fmtHM(ms){
   return Math.floor(ms/3600000)+'h\u202F'+Math.floor((ms%3600000)/60000)+'m';
 }
 
-/* ─── SCHEDULE ADHERENCE ──────────────────────────────────────────
-   For a session [startTs, endTs], compute how many ms fell inside
-   official study blocks (isStudy=true in SCHEDULE).
-
-   Approach: map each block onto the wall-clock day of the session
-   using absolute ms timestamps, then intersect with [startTs,endTs].
-   Cross-midnight sessions are handled by checking both the start-day
-   and the end-day blocks, so the math stays exact.
-
-   Adherence % = adherent ms / total studied ms  (all-time).
-   This measures discipline: not just how much you study, but whether
-   you study when the Dincharya says you should.
-*/
-function computeAdherentMs(startTs, endTs){
-  // Determine midnight (00:00:00.000) for start day and end day
-  const s0=new Date(startTs); s0.setHours(0,0,0,0);
-  const e0=new Date(endTs);   e0.setHours(0,0,0,0);
-  const daysMs=[s0.getTime()];
-  // If the session crossed midnight, check next day's blocks too
-  if(e0.getTime()>s0.getTime()) daysMs.push(e0.getTime());
-
-  let adherentMs=0;
-  for(const dayMs of daysMs){
-    for(const [bStart,bEnd,,isStudy] of SCHEDULE){
-      if(!isStudy) continue;
-      const wsStart=dayMs+bStart*60000;
-      const wsEnd  =dayMs+bEnd  *60000;
-      const oStart =Math.max(startTs,wsStart);
-      const oEnd   =Math.min(endTs,  wsEnd);
-      if(oEnd>oStart) adherentMs+=oEnd-oStart;
-    }
-  }
-  return adherentMs;
-}
-
-function updateAdherence(sessions){
-  const el=document.getElementById('s-adherence');
-  if(!el) return;
-  sessions=sessions||loadSessions();
-
-  let totalMs=0, adherentMs=0;
-  sessions.forEach(s=>{
-    totalMs    +=s.duration;
-    adherentMs +=computeAdherentMs(s.startTs,s.endTs);
-  });
-
-  // Include the live session if the timer is running or paused.
-  // For running: use Date.now() as effective end (slight overcount of
-  //   pause time within blocks, negligible in practice).
-  // For paused: use pauseStart as effective end — no time is accruing.
-  if(ts.sessionStart){
-    const liveEnd=ts.status==='paused'?ts.pauseStart:Date.now();
-    const liveDur=elapsed();
-    if(liveDur>0){
-      totalMs    +=liveDur;
-      adherentMs +=computeAdherentMs(ts.sessionStart,liveEnd);
-    }
-  }
-
-  if(!totalMs){el.textContent='\u2014';el.style.color='';return;}
-  const pct=Math.min(100,Math.round(adherentMs/totalMs*100));
-  el.textContent=pct+'%';
-  el.style.color=pct>=80?'#60c478':pct>=60?'var(--gold)':'var(--gold-dim)';
-}
-
 /* ─── TIMER STATE ─────────────────────────────────────────────── */
 /*
    ACCURACY GUARANTEE:
@@ -1709,8 +1637,9 @@ function timerStart(){
 function timerPause(){
   if(ts.status==='running'){
     ts.pauseStart=Date.now(); ts.status='paused';
-    clearInterval(_iv);
-    // Display remains at last elapsed — still accurate via elapsed()
+    clearInterval(_iv); _iv=null;
+    // Snap display to exact elapsed at the moment of pause before freezing
+    refreshDisplay();
   } else if(ts.status==='paused'){
     ts.totalPaused+=Date.now()-ts.pauseStart;
     ts.pauseStart=null; ts.status='running';
@@ -1795,6 +1724,10 @@ function calcStreak(byDay){
   return streak;
 }
 
+/* ─── DAILY GOAL CONSTANT ─────────────────────────────────────── */
+/* 10h 40m — the exact total study window from the Dincharya schedule */
+const GOAL_MS = 10 * 3600000 + 40 * 60000;
+
 /* ─── STATUS CARD ─────────────────────────────────────────────── */
 function updateStatusCard(sessions){
   sessions=sessions||loadSessions();
@@ -1869,11 +1802,9 @@ function renderLog(){
 
 /* ─── DAILY GOAL BAR ──────────────────────────────────────────── */
 /*
-   Goal = 10h 40m/day (exact study window from schedule).
-   Bar fills as today's total climbs. Turns green at 100%.
+   Bar fills as today's total climbs toward GOAL_MS. Turns green at 100%.
    Updates every second while running via refreshDisplay.
 */
-const GOAL_MS = 10 * 3600000 + 40 * 60000; // 10h 40m — max study time per schedule (daily goal)
 function updateGoalBar(sessions){
   sessions=sessions||loadSessions();
   const today=dk();
