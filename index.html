@@ -1689,7 +1689,7 @@ function timerStop(){
 
   // Full reset
   ts={status:'idle',sessionStart:null,pauseStart:null,totalPaused:0};
-  clearInterval(_iv);
+  clearInterval(_iv); _iv=null;
   localStorage.removeItem(KEY_TIMER);
   document.getElementById('timer').textContent='00:00:00';
   document.getElementById('tmeta').textContent='\u00a0';
@@ -1758,7 +1758,7 @@ function renderLog(){
   const today=dk();
   let todayMs=0,weekMs=0,monthMs=0,allTime=0;
   let todaySessions=[];
-  const byDay={}, monthDays=new Set();
+  const byDay={};
 
   sessions.forEach(s=>{
     const key=s.date||dk(s.startTs);
@@ -1766,7 +1766,7 @@ function renderLog(){
     byDay[key]=(byDay[key]||0)+s.duration;
     if(key===today){todayMs+=s.duration;todaySessions.push(s);}
     if(inWeek(s.startTs)) weekMs+=s.duration;
-    if(inMonth(s.startTs)){monthMs+=s.duration;monthDays.add(key);}
+    if(inMonth(s.startTs)) monthMs+=s.duration;
   });
 
   // Average = all-time total / total unique days studied (across all time)
@@ -1956,7 +1956,7 @@ function confirmClear(){
     localStorage.removeItem(KEY_SESSIONS);
     localStorage.removeItem(KEY_TIMER);
     ts={status:'idle',sessionStart:null,pauseStart:null,totalPaused:0};
-    clearInterval(_iv);
+    clearInterval(_iv); _iv=null;
     _breakShown=false;
     dismissBreak();
     document.getElementById('timer').textContent='00:00:00';
@@ -2130,7 +2130,7 @@ if(ts.status==='running'){
 }
 
 renderLog();
-// renderHeatmap and tickNow are already invoked inside renderLog() and at line 1945; no need to repeat.
+// renderHeatmap is called inside renderLog(); tickNow is called above at boot.
 </script>
 </body>
 </html>
