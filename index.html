@@ -1601,6 +1601,20 @@ function refreshDisplay(){
   renderHeatmap(_sessions);
   updateStatusCard(_sessions);
   checkBreakReminder();
+  // BUG FIX: Update stat card elements live so they tick every second during a session.
+  // Previously these were only set inside renderLog() (called at boot and after Stop),
+  // so they froze at the boot value for the entire duration of a session.
+  if(ts.status==='running'||ts.status==='paused'){
+    const todayKey=dk(), e=elapsed();
+    const _todayMs =_sessions.filter(s=>(s.date||dk(s.startTs))===todayKey).reduce((a,s)=>a+s.duration,0)+e;
+    const _weekMs  =_sessions.filter(s=>inWeek(s.startTs)).reduce((a,s)=>a+s.duration,0)+e;
+    const _monthMs =_sessions.filter(s=>inMonth(s.startTs)).reduce((a,s)=>a+s.duration,0)+e;
+    const _allTime =_sessions.reduce((a,s)=>a+s.duration,0)+e;
+    document.getElementById('s-today').textContent  =fmtHM(_todayMs);
+    document.getElementById('s-week').textContent   =fmtHM(_weekMs);
+    document.getElementById('s-month').textContent  =fmtHM(_monthMs);
+    document.getElementById('s-alltime').textContent=fmtHM(_allTime);
+  }
 }
 
 /* Sync all button states and visuals to current status */
@@ -1769,9 +1783,18 @@ function renderLog(){
     if(inMonth(s.startTs)) monthMs+=s.duration;
   });
 
-  // Average = all-time total / total unique days studied (across all time)
+  // Average is computed from saved sessions only (stable, not inflated by live time)
   const allDays=new Set(sessions.map(s=>s.date||dk(s.startTs))).size;
   const avgMs=allDays>0?allTime/allDays:0;
+
+  // BUG FIX: Include the currently running/paused session in all stat totals and byDay.
+  // Without this: stats freeze at boot value; streak won't count today until you Stop.
+  if(ts.status==='running'||ts.status==='paused'){
+    const e=elapsed();
+    todayMs+=e; weekMs+=e; monthMs+=e; allTime+=e;
+    byDay[today]=(byDay[today]||0)+e; // ensures calcStreak counts today's live session
+  }
+
   const streak=calcStreak(byDay);
 
   document.getElementById('s-today').textContent  =fmtHM(todayMs);
@@ -1977,6 +2000,9 @@ function confirmClear(){
 */
 document.addEventListener('keydown', e=>{
   if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA') return;
+  // BUG FIX: Ignore Space/Escape shortcuts while the export modal is open.
+  // Previously Space would pause/resume the timer in the background while the modal was visible.
+  if(document.getElementById('export-modal').classList.contains('open')) return;
   if(e.code==='Space'){
     e.preventDefault();
     if(ts.status==='idle') timerStart();
