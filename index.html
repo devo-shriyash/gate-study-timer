@@ -1032,6 +1032,147 @@
       margin-bottom: 18px;
       font-family: var(--mono);
     }
+
+    /* ── Daily Status Card — left panel centrepiece ──────────────
+       This is the honest mirror: are you a ranker or a dusht today?
+       Placed below the controls so every glance at the timer ends here.
+    */
+    .status-card {
+      margin-top: 22px;
+      width: 100%;
+      max-width: 460px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.5s ease, background 0.5s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px 28px 18px;
+      gap: 0;
+    }
+
+    /* Thin accent line at top — colour driven by JS class */
+    .status-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: var(--sc-accent, rgba(196,162,70,0.12));
+      transition: background 0.5s ease;
+    }
+
+    /* Subtle radial glow behind the text */
+    .status-card::after {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 280px; height: 80px;
+      background: radial-gradient(ellipse, var(--sc-glow, transparent) 0%, transparent 70%);
+      pointer-events: none;
+      transition: background 0.5s ease;
+    }
+
+    .status-card.sc-bad {
+      border-color: rgba(184,82,72,0.25);
+      background: linear-gradient(160deg, rgba(184,82,72,0.04), var(--surface));
+      --sc-accent: linear-gradient(90deg, transparent, rgba(184,82,72,0.55), transparent);
+      --sc-glow:   rgba(184,82,72,0.06);
+    }
+    .status-card.sc-ok {
+      border-color: rgba(78,148,96,0.25);
+      background: linear-gradient(160deg, rgba(78,148,96,0.04), var(--surface));
+      --sc-accent: linear-gradient(90deg, transparent, rgba(78,148,96,0.55), transparent);
+      --sc-glow:   rgba(78,148,96,0.06);
+    }
+    .status-card.sc-good {
+      border-color: rgba(196,162,70,0.28);
+      background: linear-gradient(160deg, rgba(196,162,70,0.04), var(--surface));
+      --sc-accent: linear-gradient(90deg, transparent, rgba(196,162,70,0.55), transparent);
+      --sc-glow:   rgba(196,162,70,0.07);
+    }
+    .status-card.sc-great {
+      border-color: rgba(196,162,70,0.48);
+      background: linear-gradient(160deg, rgba(196,162,70,0.07), var(--surface));
+      --sc-accent: linear-gradient(90deg, transparent, var(--gold-bright), transparent);
+      --sc-glow:   rgba(196,162,70,0.12);
+    }
+
+    .sc-tag {
+      font-size: 0.46rem;
+      font-weight: 700;
+      letter-spacing: 0.26em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 9px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .sc-status-text {
+      font-family: var(--mono);
+      font-size: 1.55rem;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      line-height: 1;
+      transition: color 0.5s ease;
+      position: relative;
+      z-index: 1;
+      color: var(--text-dim);
+    }
+
+    .status-card.sc-bad   .sc-status-text { color: #b85248; }
+    .status-card.sc-ok    .sc-status-text { color: var(--green); }
+    .status-card.sc-good  .sc-status-text { color: var(--gold); }
+    .status-card.sc-great .sc-status-text { color: var(--gold-bright); }
+
+    .sc-hours-row {
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .sc-hours-bar-wrap {
+      width: 120px;
+      height: 2px;
+      background: rgba(196,162,70,0.07);
+      border-radius: 1px;
+      overflow: hidden;
+    }
+
+    .sc-hours-bar-fill {
+      height: 100%;
+      border-radius: 1px;
+      transition: width 1s ease, background 0.5s ease;
+      width: 0%;
+      background: rgba(196,162,70,0.3);
+    }
+
+    .status-card.sc-bad   .sc-hours-bar-fill { background: rgba(184,82,72,0.5); }
+    .status-card.sc-ok    .sc-hours-bar-fill { background: rgba(78,148,96,0.6); }
+    .status-card.sc-good  .sc-hours-bar-fill { background: var(--gold-dim); }
+    .status-card.sc-great .sc-hours-bar-fill { background: linear-gradient(90deg, var(--gold-dim), var(--gold-bright)); }
+
+    .sc-hours-label {
+      font-family: var(--mono);
+      font-size: 0.6rem;
+      font-weight: 500;
+      color: var(--text-dim);
+      font-variant-numeric: tabular-nums;
+      transition: color 0.5s;
+    }
+
+    .status-card.sc-bad   .sc-hours-label { color: rgba(184,82,72,0.6); }
+    .status-card.sc-ok    .sc-hours-label { color: rgba(78,148,96,0.7); }
+    .status-card.sc-good  .sc-hours-label { color: var(--gold-dim); }
+    .status-card.sc-great .sc-hours-label { color: var(--gold); }
   </style>
 </head>
 <body>
@@ -1109,6 +1250,18 @@
         <kbd>Space</kbd> &nbsp;Start / Pause &nbsp;&nbsp; <kbd>Esc</kbd> &nbsp;Stop
       </div>
 
+      <!-- Daily Status — main accountability anchor -->
+      <div class="status-card sc-bad" id="status-card">
+        <div class="sc-tag">Daily Status</div>
+        <div class="sc-status-text" id="sc-status-text">Dusht &amp; Paapi</div>
+        <div class="sc-hours-row">
+          <div class="sc-hours-bar-wrap">
+            <div class="sc-hours-bar-fill" id="sc-bar-fill"></div>
+          </div>
+          <span class="sc-hours-label" id="sc-hours-label">0h 0m studied</span>
+        </div>
+      </div>
+
       <div class="sess-card" id="scard">
         <div class="sc-lbl">Session Complete &nbsp;·&nbsp; Jai Shri Radhe</div>
         <div class="sc-kudos" id="sc-kudos"></div>
@@ -1124,6 +1277,23 @@
     <!-- Right: Study Log -->
     <div class="right">
 
+      <!-- "RIGHT NOW" — live schedule block indicator (top) -->
+      <div class="log-hdr" style="margin-bottom:6px">Right Now</div>
+      <div class="now-wrap" id="now-wrap">
+        <div class="now-top">
+          <span class="now-label" id="now-label">Loading…</span>
+        </div>
+        <div class="now-block-name" id="now-block-name">—</div>
+        <div class="now-bottom">
+          <span class="now-time-left" id="now-time-left">—</span>
+          <span class="now-next" id="now-next"></span>
+        </div>
+        <div class="now-progress"><div class="now-progress-fill" id="now-progress-fill" style="width:0%"></div></div>
+      </div>
+
+      <div class="now-sep"></div>
+
+      <!-- Study Log -->
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
         <div class="panel-lbl" style="margin-bottom:0">Study Log</div>
         <button class="export-btn" onclick="openExport()" title="Export or backup your study data">⬇ Export</button>
@@ -1142,41 +1312,22 @@
         <div class="scard"><span class="sl">This Week</span><span class="sv" id="s-week">0h 0m</span></div>
         <div class="scard"><span class="sl">This Month</span><span class="sv" id="s-month">0h 0m</span></div>
         <div class="scard"><span class="sl">Daily Avg (all time)</span><span class="sv" id="s-avg">0h 0m</span></div>
-        <div class="scard"><span class="sl">&#x1F525; Streak</span><span class="sv" id="s-streak">0 days</span></div>
+        <div class="scard"><span class="sl">Streak</span><span class="sv" id="s-streak">0 days</span></div>
         <div class="scard"><span class="sl">All-Time</span><span class="sv" id="s-alltime">0h 0m</span></div>
-        <div class="scard"><span class="sl">📐 Schedule Adherence</span><span class="sv" id="s-adherence">—</span></div>
       </div>
-
-      <div class="badge bad" id="badge">Dusht &amp; Paapi &#x1F624;</div>
-
-      <div class="log-sep"></div>
-
-      <div class="log-hdr">Today&rsquo;s Sessions</div>
-      <div class="log-list" id="log-list">
-        <div class="log-empty">No sessions yet.<br>Begin your sadhana.</div>
-      </div>
-
-      <!-- "RIGHT NOW" — live schedule block indicator -->
-      <div class="now-sep"></div>
-      <div class="log-hdr" style="margin-bottom:6px">Right Now</div>
-      <div class="now-wrap" id="now-wrap">
-        <div class="now-top">
-          <span class="now-label" id="now-label">Loading…</span>
-        </div>
-        <div class="now-block-name" id="now-block-name">—</div>
-        <div class="now-bottom">
-          <span class="now-time-left" id="now-time-left">—</span>
-          <span class="now-next" id="now-next"></span>
-        </div>
-        <div class="now-progress"><div class="now-progress-fill" id="now-progress-fill" style="width:0%"></div></div>
-      </div>
-
-      <!-- 7-Day Heatmap -->
       <div class="heat-hdr">
         <span class="heat-label">This Week</span>
         <span class="heat-week-total" id="heat-week-total"></span>
       </div>
       <div class="heatmap" id="heatmap"></div>
+
+      <div class="log-sep"></div>
+
+      <!-- Today's Sessions (bottom) -->
+      <div class="log-hdr">Today&rsquo;s Sessions</div>
+      <div class="log-list" id="log-list">
+        <div class="log-empty">No sessions yet.<br>Begin your sadhana.</div>
+      </div>
 
     </div>
   </div>
@@ -1520,7 +1671,7 @@ function refreshDisplay(){
   const _sessions=loadSessions();
   updateGoalBar(_sessions);
   renderHeatmap(_sessions);
-  updateAdherence(_sessions);
+  updateStatusCard(_sessions);
   checkBreakReminder();
 }
 
@@ -1644,6 +1795,30 @@ function calcStreak(byDay){
   return streak;
 }
 
+/* ─── STATUS CARD ─────────────────────────────────────────────── */
+function updateStatusCard(sessions){
+  sessions=sessions||loadSessions();
+  const today=dk();
+  let todayMs=0;
+  sessions.forEach(s=>{ if((s.date||dk(s.startTs))===today) todayMs+=s.duration; });
+  if(ts.status==='running'||ts.status==='paused') todayMs+=elapsed();
+
+  const hrs=todayMs/3600000;
+  const sc=document.getElementById('status-card');
+  const st=document.getElementById('sc-status-text');
+  const bar=document.getElementById('sc-bar-fill');
+  const lbl=document.getElementById('sc-hours-label');
+  const pct=Math.min(100,Math.round(todayMs/GOAL_MS*100));
+  if(bar) bar.style.width=pct+'%';
+  if(lbl) lbl.textContent=fmtHM(todayMs)+' studied';
+  if(sc&&st){
+    if(hrs>=9.5){st.textContent='Ranker';sc.className='status-card sc-great';}
+    else if(hrs>=7){st.textContent='Very Good';sc.className='status-card sc-good';}
+    else if(hrs>=4){st.textContent='Keep Going';sc.className='status-card sc-ok';}
+    else{st.textContent='Dusht & Paapi';sc.className='status-card sc-bad';}
+  }
+}
+
 /* ─── RENDER LOG ──────────────────────────────────────────────── */
 function renderLog(){
   const sessions=loadSessions();
@@ -1673,20 +1848,13 @@ function renderLog(){
   document.getElementById('s-streak').textContent =streak+(streak===1?'\u202Fday':'\u202Fdays');
   document.getElementById('s-alltime').textContent=fmtHM(allTime);
 
-  // Status badge — honest daily accountability
-  const hrs=todayMs/3600000;
-  const badge=document.getElementById('badge');
-  if(hrs>=9.5){badge.textContent='Ranker! \uD83C\uDFC6';badge.className='badge great';}
-  else if(hrs>=7){badge.textContent='Very good. But need more.';badge.className='badge good';}
-  else if(hrs>=4){badge.textContent='Good. Keep Going.';badge.className='badge ok';}
-  else{badge.textContent='Dusht & Paapi \uD83D\uDE24';badge.className='badge bad';}
+  // Update goal bar, heatmap, and status card — pass already-loaded sessions
+  updateGoalBar(sessions);
+  renderHeatmap(sessions);
+  updateStatusCard(sessions);
 
   // Today's sessions list, newest first
   const listEl=document.getElementById('log-list');
-  // Update goal bar, heatmap, and adherence — pass already-loaded sessions to avoid extra localStorage reads
-  updateGoalBar(sessions);
-  renderHeatmap(sessions);
-  updateAdherence(sessions);
   if(!todaySessions.length){
     listEl.innerHTML='<div class="log-empty">No sessions yet.<br>Begin your sadhana.</div>';
     return;
